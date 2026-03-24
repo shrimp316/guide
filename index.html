@@ -4,302 +4,77 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>벽돌주식회사 통합사이트</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="components.js" defer></script>
 <style>
-:root {
-  --bg: #f5f4f0;
-  --surface: #ffffff;
-  --surface2: #f0efe9;
-  --border: #e2e0d8;
-  --border2: #d0cec4;
-  --text: #1a1917;
-  --text2: #6b6960;
-  --text3: #9b998f;
-  --teal: #1D9E75;
-  --teal-light: #E1F5EE;
-  --teal-border: #5DCAA5;
-  --amber: #BA7517;
-  --amber-light: #FAEEDA;
-  --purple: #534AB7;
-  --purple-light: #EEEDFE;
-  --blue: #185FA5;
-  --blue-light: #E6F1FB;
-  --sidebar-w: 220px;
-  --radius: 10px;
-  --radius-sm: 6px;
-}
+.main { max-width: 960px; }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Noto Sans KR', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-a { text-decoration: none; color: inherit; }
-
-/* ── 레이아웃 ── */
-.app { display: flex; min-height: 100vh; }
-
-/* ── 사이드바 ── */
-.sidebar {
-  width: var(--sidebar-w);
-  min-width: var(--sidebar-w);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0; left: 0;
-  height: 100vh;
-  overflow-y: auto;
-  z-index: 100;
-  transition: transform 0.25s ease;
-}
-
-.sidebar-header {
-  padding: 20px 16px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.site-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.logo-icon {
-  width: 34px; height: 34px;
-  background: var(--text);
-  border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.site-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-}
-.site-sub {
-  font-size: 11px;
-  color: var(--text3);
-}
-
-.nav { padding: 10px 8px; flex: 1; }
-
-.nav-group { margin-bottom: 4px; }
-
-.nav-group-label {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text3);
-  letter-spacing: 0.06em;
-  padding: 8px 8px 4px;
-  text-transform: uppercase;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  color: var(--text2);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.nav-item:hover { background: var(--surface2); color: var(--text); }
-.nav-item.active { background: var(--surface2); color: var(--text); font-weight: 500; }
-
-.nav-icon {
-  width: 18px; height: 18px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-
-.nav-divider { height: 1px; background: var(--border); margin: 8px 8px; }
-
-/* 외부링크 표시 */
-.nav-item .ext {
-  margin-left: auto;
-  font-size: 10px;
-  color: var(--text3);
-}
-
-/* ── 메인 ── */
-.main {
-  margin-left: var(--sidebar-w);
-  flex: 1;
-  padding: 28px 28px 60px;
-  max-width: 960px;
-}
-
-/* ── 업데이트 배너 ── */
 .update-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--teal-light);
-  border: 1px solid var(--teal-border);
-  border-radius: var(--radius);
-  padding: 11px 16px;
-  margin-bottom: 24px;
-  font-size: 13px;
-  color: #0F6E56;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--teal-light); border: 1px solid var(--teal-border);
+  border-radius: var(--radius); padding: 11px 16px;
+  margin-bottom: 24px; font-size: 13px; color: #0F6E56;
 }
 .banner-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--teal);
-  flex-shrink: 0;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--teal); flex-shrink: 0;
   animation: pulse 2s ease-in-out infinite;
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .banner-text { flex: 1; }
-.banner-link {
-  font-size: 12px;
-  color: var(--teal);
-  font-weight: 500;
-  white-space: nowrap;
-}
+.banner-link { font-size: 12px; color: var(--teal); font-weight: 500; white-space: nowrap; }
 .banner-link:hover { text-decoration: underline; }
 
-/* ── 검색 ── */
 .search-area { margin-bottom: 18px; }
-
-.search-wrap {
-  position: relative;
-}
+.search-wrap { position: relative; }
 .search-input {
-  width: 100%;
-  padding: 10px 14px 10px 38px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  background: var(--surface);
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--text);
-  outline: none;
-  transition: border 0.15s;
+  width: 100%; padding: 10px 14px 10px 38px;
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  background: var(--surface); font-size: 13px; font-family: inherit;
+  color: var(--text); outline: none; transition: border 0.15s;
 }
 .search-input:focus { border-color: var(--teal-border); }
 .search-input::placeholder { color: var(--text3); }
 .search-icon {
-  position: absolute;
-  left: 12px; top: 50%;
-  transform: translateY(-50%);
-  color: var(--text3);
-  font-size: 14px;
-  pointer-events: none;
+  position: absolute; left: 12px; top: 50%;
+  transform: translateY(-50%); color: var(--text3);
+  font-size: 14px; pointer-events: none;
 }
 
-/* ── 태그 필터 ── */
-.tag-bar {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
-}
+.tag-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
 .tag {
-  padding: 4px 12px;
-  border-radius: 99px;
-  border: 1px solid var(--border2);
-  font-size: 12px;
-  color: var(--text2);
-  background: var(--surface);
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
+  padding: 4px 12px; border-radius: 99px;
+  border: 1px solid var(--border2); font-size: 12px;
+  color: var(--text2); background: var(--surface);
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
 }
 .tag:hover { border-color: var(--teal-border); color: var(--teal); }
-.tag.active {
-  background: var(--teal-light);
-  border-color: var(--teal-border);
-  color: #0F6E56;
-  font-weight: 500;
-}
+.tag.active { background: var(--teal-light); border-color: var(--teal-border); color: #0F6E56; font-weight: 500; }
 
-/* ── 섹션 ── */
 .section { margin-bottom: 32px; }
+.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.section-title { font-size: 12px; font-weight: 500; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; }
+.section-line { flex: 1; height: 1px; background: var(--border); }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.section-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text3);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.section-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-/* ── 카드 그리드 ── */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
-}
-
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 5px;
   transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
   position: relative;
 }
-.card:hover {
-  border-color: var(--border2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
+.card:hover { border-color: var(--border2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .card.pinned { border-color: var(--teal-border); }
-.card[data-hidden="true"] { display: none; }
 
 .card-pin {
-  position: absolute;
-  top: 10px; right: 10px;
-  font-size: 10px;
-  background: var(--teal-light);
-  color: #0F6E56;
-  padding: 2px 7px;
-  border-radius: 99px;
-  font-weight: 500;
+  position: absolute; top: 10px; right: 10px;
+  font-size: 10px; background: var(--teal-light); color: #0F6E56;
+  padding: 2px 7px; border-radius: 99px; font-weight: 500;
 }
-
 .card-icon {
-  width: 36px; height: 36px;
-  border-radius: var(--radius-sm);
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  margin-bottom: 4px;
-  flex-shrink: 0;
+  font-size: 18px; margin-bottom: 4px; flex-shrink: 0;
 }
 .ic-teal { background: var(--teal-light); }
 .ic-amber { background: var(--amber-light); }
@@ -307,181 +82,24 @@ a { text-decoration: none; color: inherit; }
 .ic-blue { background: var(--blue-light); }
 .ic-gray { background: var(--surface2); }
 
-.card-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  line-height: 1.3;
-}
-.card-desc {
-  font-size: 11px;
-  color: var(--text2);
-  line-height: 1.4;
-}
-.card-footer {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-.card-tag {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 99px;
-  background: var(--surface2);
-  color: var(--text3);
-  font-family: 'DM Mono', monospace;
-}
+.card-name { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.3; }
+.card-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
+.card-footer { display: flex; align-items: center; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+.card-tag { font-size: 10px; padding: 2px 7px; border-radius: 99px; background: var(--surface2); color: var(--text3); font-family: 'DM Mono', monospace; }
 
-/* 빈 결과 */
-.empty-msg {
-  display: none;
-  text-align: center;
-  padding: 48px 0;
-  color: var(--text3);
-  font-size: 13px;
-}
-
-/* ── 모바일 헤더 ── */
-.mobile-header {
-  display: none;
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 52px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  z-index: 200;
-  align-items: center;
-  padding: 0 16px;
-  gap: 12px;
-}
-.hamburger {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 20px;
-  color: var(--text);
-  padding: 4px;
-}
-.mobile-title { font-size: 14px; font-weight: 700; }
-
-/* 오버레이 */
-.overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.35);
-  z-index: 99;
-}
-.overlay.show { display: block; }
-
-/* ── 반응형 ── */
-@media (max-width: 720px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
-  }
-  .main {
-    margin-left: 0;
-    padding: 72px 16px 48px;
-  }
-  .mobile-header { display: flex; }
-  .card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
-}
+.empty-msg { display: none; text-align: center; padding: 48px 0; color: var(--text3); font-size: 13px; }
 </style>
 </head>
 <body>
-
-<!-- 모바일 헤더 -->
-<header class="mobile-header">
-  <button class="hamburger" id="menuBtn">☰</button>
-  <span class="mobile-title">벽돌주식회사</span>
-</header>
-<div class="overlay" id="overlay"></div>
-
 <div class="app">
-
-  <!-- 사이드바 -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="site-logo">
-        <div class="logo-icon">🧱</div>
-        <div>
-          <div class="site-name">벽돌주식회사</div>
-          <div class="site-sub">통합 정보사이트</div>
-        </div>
-      </div>
-    </div>
-
-    <nav class="nav">
-      <div class="nav-group">
-        <div class="nav-item active">
-          <span class="nav-icon">🏠</span> 홈
-        </div>
-      </div>
-
-      <div class="nav-divider"></div>
-
-      <div class="nav-group">
-        <div class="nav-group-label">가이드</div>
-        <a href="guide/pre-god.html" class="nav-item"><span class="nav-icon">📖</span> 신 이전</a>
-        <a href="guide/god1-4.html" class="nav-item"><span class="nav-icon">📖</span> 신1 ~ 신4</a>
-        <a href="guide/god4-7.html" class="nav-item"><span class="nav-icon">📖</span> 신4 ~ 신7</a>
-        <a href="guide/god7-11.html" class="nav-item"><span class="nav-icon">📖</span> 신7 ~ 신11</a>
-        <a href="guide/god11-15.html" class="nav-item"><span class="nav-icon">📖</span> 신11 ~ 신15</a>
-        <a href="guide/super1-4.html" class="nav-item"><span class="nav-icon">📖</span> 초월신1 ~ 4</a>
-        <a href="guide/super4.html" class="nav-item"><span class="nav-icon">📖</span> 초월신4 이후</a>
-      </div>
-
-      <div class="nav-divider"></div>
-
-      <div class="nav-group">
-        <div class="nav-group-label">공략</div>
-        <a href="guide/dive.html" class="nav-item"><span class="nav-icon">🤿</span> 다이브</a>
-        <a href="guide/beast.html" class="nav-item"><span class="nav-icon">🐉</span> 신수</a>
-        <a href="guide/dimension.html" class="nav-item"><span class="nav-icon">🔭</span> 차원탐사</a>
-      </div>
-
-      <div class="nav-divider"></div>
-
-      <div class="nav-group">
-        <div class="nav-group-label">계산기 / 도구</div>
-        <a href="calc/ascension.html" class="nav-item"><span class="nav-icon">⚡</span> 득도·승천</a>
-        <a href="calc/forge.html" class="nav-item"><span class="nav-icon">🔨</span> 제련</a>
-        <a href="calc/beast-cal.html" class="nav-item"><span class="nav-icon">🧮</span> 신수 계산기</a>
-        <a href="calc/dimension-ev.html" class="nav-item"><span class="nav-icon">🎲</span> 차원탐사 기댓값</a>
-        <a href="tool/path.html" class="nav-item"><span class="nav-icon">🗺️</span> 진리의 길</a>
-        <a href="tool/tree.html" class="nav-item"><span class="nav-icon">🌳</span> 진리의 나무</a>
-      </div>
-
-      <div class="nav-divider"></div>
-
-      <div class="nav-group">
-        <a href="https://www.seasoninggames.com/ko/blog" target="_blank" class="nav-item">
-          <span class="nav-icon">🌐</span> 공식 홈페이지
-          <span class="ext">↗</span>
-        </a>
-      </div>
-    </nav>
-  </aside>
-
-  <!-- 메인 -->
   <main class="main">
 
-    <!-- 업데이트 배너 -->
-    <div class="update-banner" id="updateBanner">
+    <div class="update-banner">
       <div class="banner-dot"></div>
       <div class="banner-text" id="bannerText">최신 패치노트 확인 중...</div>
       <a href="https://www.seasoninggames.com/ko/blog" target="_blank" class="banner-link">공식 사이트 →</a>
     </div>
 
-    <!-- 검색 -->
     <div class="search-area">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -489,7 +107,6 @@ a { text-decoration: none; color: inherit; }
       </div>
     </div>
 
-    <!-- 태그 필터 -->
     <div class="tag-bar" id="tagBar">
       <button class="tag active" data-tag="all">전체</button>
       <button class="tag" data-tag="guide">#guide</button>
@@ -498,51 +115,26 @@ a { text-decoration: none; color: inherit; }
       <button class="tag" data-tag="main">#main</button>
     </div>
 
-    <!-- 빈 결과 -->
     <div class="empty-msg" id="emptyMsg">검색 결과가 없습니다.</div>
 
-    <!-- PIN 섹션 -->
     <div class="section" id="section-pin">
-      <div class="section-header">
-        <div class="section-title">고정됨</div>
-        <div class="section-line"></div>
-      </div>
+      <div class="section-header"><div class="section-title">고정됨</div><div class="section-line"></div></div>
       <div class="card-grid" id="grid-pin"></div>
     </div>
-
-    <!-- 가이드 섹션 -->
     <div class="section" id="section-guide">
-      <div class="section-header">
-        <div class="section-title">구간별 가이드</div>
-        <div class="section-line"></div>
-      </div>
+      <div class="section-header"><div class="section-title">구간별 가이드</div><div class="section-line"></div></div>
       <div class="card-grid" id="grid-guide"></div>
     </div>
-
-    <!-- 공략 섹션 -->
     <div class="section" id="section-strategy">
-      <div class="section-header">
-        <div class="section-title">공략집</div>
-        <div class="section-line"></div>
-      </div>
+      <div class="section-header"><div class="section-title">공략집</div><div class="section-line"></div></div>
       <div class="card-grid" id="grid-strategy"></div>
     </div>
-
-    <!-- 계산기 섹션 -->
     <div class="section" id="section-cal">
-      <div class="section-header">
-        <div class="section-title">계산기</div>
-        <div class="section-line"></div>
-      </div>
+      <div class="section-header"><div class="section-title">계산기</div><div class="section-line"></div></div>
       <div class="card-grid" id="grid-cal"></div>
     </div>
-
-    <!-- 편의기능 섹션 -->
     <div class="section" id="section-tool">
-      <div class="section-header">
-        <div class="section-title">편의기능</div>
-        <div class="section-line"></div>
-      </div>
+      <div class="section-header"><div class="section-title">편의기능</div><div class="section-line"></div></div>
       <div class="card-grid" id="grid-tool"></div>
     </div>
 
@@ -550,145 +142,102 @@ a { text-decoration: none; color: inherit; }
 </div>
 
 <script>
-// ── 카드 데이터 ──
 const CARDS = [
-  { id:1, name:"공식 홈페이지", desc:"시즈닝게임즈 공식 홈페이지", icon:"🌐", iconClass:"ic-teal", tags:["main"], section:"pin", pinned:true, url:"https://www.seasoninggames.com/ko/blog", external:true },
-  { id:2, name:"Deathfisaro's 가이드북", desc:"세부팁, 자원 획득, 랭크벨 해금, 과학/양자/진리나무 최적화", icon:"📘", iconClass:"ic-blue", tags:["guide"], section:"pin", pinned:true, url:"https://brickinc-guide.netlify.app/", external:true },
-
-  { id:3, name:"신 이전", desc:"신 이전 구간 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/pre-god.html" },
-  { id:4, name:"신1 ~ 신4", desc:"신1~신4 구간 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/god1-4.html" },
-  { id:5, name:"신4 ~ 신7", desc:"신4~신7 구간 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/god4-7.html" },
-  { id:6, name:"신7 ~ 신11", desc:"신7~신11 구간 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/god7-11.html" },
-  { id:7, name:"신11 ~ 신15", desc:"신11~신15 구간 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/god11-15.html" },
-  { id:8, name:"초월신1 ~ 4", desc:"초월신1~4 구간 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/super1-4.html" },
-  { id:9, name:"초월신4 이후", desc:"초월신4 이후 운영 가이드", icon:"📖", iconClass:"ic-gray", tags:["guide"], section:"guide", url:"guide/super4.html" },
-
-  { id:10, name:"다이브", desc:"다이브 공략", icon:"🤿", iconClass:"ic-blue", tags:["guide"], section:"strategy", url:"guide/dive.html" },
-  { id:11, name:"신수 공략", desc:"신수 공략집", icon:"🐉", iconClass:"ic-teal", tags:["guide"], section:"strategy", url:"guide/beast-guide.html" },
-  { id:12, name:"차원탐사 공략", desc:"차원탐사 공략집", icon:"🔭", iconClass:"ic-purple", tags:["guide"], section:"strategy", url:"guide/dimension-guide.html" },
-
-  { id:13, name:"득도·승천 계산기", desc:"득도 승천 계산기", icon:"⚡", iconClass:"ic-amber", tags:["cal"], section:"cal", url:"calc/ascension.html" },
-  { id:14, name:"제련 계산기", desc:"재화별 제련 비용 계산", icon:"🔨", iconClass:"ic-amber", tags:["cal"], section:"cal", url:"calc/forge.html" },
-  { id:15, name:"신수 계산기", desc:"신수 각성·폭주 비용 계산", icon:"🧮", iconClass:"ic-amber", tags:["cal"], section:"cal", url:"calc/beast-cal.html" },
-  { id:16, name:"차원탐사 기댓값", desc:"차원탐사 기댓값 계산기", icon:"🎲", iconClass:"ic-purple", tags:["cal"], section:"cal", url:"calc/dimension-ev.html" },
-
-  { id:17, name:"진리의 길", desc:"최적경로 찾기", icon:"🗺️", iconClass:"ic-teal", tags:["tool"], section:"tool", url:"tool/path.html" },
-  { id:18, name:"진리의 나무", desc:"세팅 프리셋 및 누적 효과 확인", icon:"🌳", iconClass:"ic-teal", tags:["tool"], section:"tool", url:"tool/tree.html" },
-  { id:19, name:"과금내역 확인", desc:"벽돌주식회사 과금내역 확인 (구글)", icon:"💳", iconClass:"ic-gray", tags:["tool"], section:"tool", url:"https://docs.google.com/", external:true },
+  { id:1,  name:"공식 홈페이지",          desc:"시즈닝게임즈 공식 홈페이지",                                    icon:"🌐", iconClass:"ic-teal",   tags:["main"],  section:"pin",      pinned:true, url:"https://www.seasoninggames.com/ko/blog", external:true },
+  { id:2,  name:"Deathfisaro's 가이드북", desc:"세부팁, 자원 획득, 랭크벨 해금, 과학/양자/진리나무 최적화",    icon:"📘", iconClass:"ic-blue",   tags:["guide"], section:"pin",      pinned:true, url:"https://brickinc-guide.netlify.app/", external:true },
+  { id:3,  name:"신 이전",                desc:"신 이전 구간 가이드",                                           icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/pre-god.html" },
+  { id:4,  name:"신1 ~ 신4",              desc:"신1~신4 구간 가이드",                                           icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/god1-4.html" },
+  { id:5,  name:"신4 ~ 신7",              desc:"신4~신7 구간 가이드",                                           icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/god4-7.html" },
+  { id:6,  name:"신7 ~ 신11",             desc:"신7~신11 구간 가이드",                                          icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/god7-11.html" },
+  { id:7,  name:"신11 ~ 신15",            desc:"신11~신15 구간 가이드",                                         icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/god11-15.html" },
+  { id:8,  name:"초월신1 ~ 4",            desc:"초월신1~4 구간 가이드",                                         icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/super1-4.html" },
+  { id:9,  name:"초월신4 이후",           desc:"초월신4 이후 운영 가이드",                                      icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    url:"guide/super4.html" },
+  { id:10, name:"다이브",                 desc:"다이브 공략",                                                   icon:"🤿", iconClass:"ic-blue",   tags:["guide"], section:"strategy", url:"guide/dive.html" },
+  { id:11, name:"신수 공략",              desc:"신수 공략집",                                                   icon:"🐉", iconClass:"ic-teal",   tags:["guide"], section:"strategy", url:"guide/beast-guide.html" },
+  { id:12, name:"차원탐사 공략",          desc:"차원탐사 공략집",                                               icon:"🔭", iconClass:"ic-purple", tags:["guide"], section:"strategy", url:"guide/dimension-guide.html" },
+  { id:13, name:"득도·승천 계산기",       desc:"득도 승천 계산기",                                              icon:"⚡", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      url:"calc/ascension.html" },
+  { id:14, name:"제련 계산기",            desc:"재화별 제련 비용 계산",                                         icon:"🔨", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      url:"calc/forge.html" },
+  { id:15, name:"신수 계산기",            desc:"신수 각성·폭주 비용 계산",                                      icon:"🧮", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      url:"calc/beast-cal.html" },
+  { id:16, name:"차원탐사 기댓값",        desc:"차원탐사 기댓값 계산기",                                        icon:"🎲", iconClass:"ic-purple", tags:["cal"],   section:"cal",      url:"calc/dimension-ev.html" },
+  { id:17, name:"진리의 길",              desc:"최적경로 찾기",                                                  icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     url:"tool/path.html" },
+  { id:18, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과 확인",                                 icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     url:"tool/tree.html" },
+  { id:19, name:"과금내역 확인",          desc:"벽돌주식회사 과금내역 확인 (구글)",                             icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     url:"https://docs.google.com/", external:true },
 ];
 
-// ── 렌더링 ──
 function renderCard(card) {
   const el = document.createElement('div');
   el.className = 'card' + (card.pinned ? ' pinned' : '');
-  el.dataset.id = card.id;
   el.dataset.tags = card.tags.join(',');
   el.dataset.section = card.section;
-
   el.innerHTML = `
     ${card.pinned ? '<div class="card-pin">PIN</div>' : ''}
     <div class="card-icon ${card.iconClass}">${card.icon}</div>
     <div class="card-name">${card.name}</div>
     <div class="card-desc">${card.desc}</div>
-    <div class="card-footer">
-      ${card.tags.map(t => `<span class="card-tag">#${t}</span>`).join('')}
-    </div>
+    <div class="card-footer">${card.tags.map(t=>`<span class="card-tag">#${t}</span>`).join('')}</div>
   `;
-
   el.addEventListener('click', () => {
     if (card.external) window.open(card.url, '_blank');
     else window.location.href = card.url;
   });
-
   return el;
 }
 
-function init() {
+function initCards() {
   const grids = { pin:'grid-pin', guide:'grid-guide', strategy:'grid-strategy', cal:'grid-cal', tool:'grid-tool' };
-  Object.values(grids).forEach(id => document.getElementById(id).innerHTML = '');
-
   CARDS.forEach(card => {
-    const gridId = grids[card.section];
-    if (gridId) document.getElementById(gridId).appendChild(renderCard(card));
+    const el = document.getElementById(grids[card.section]);
+    if (el) el.appendChild(renderCard(card));
   });
 }
 
-// ── 필터링 ──
-let activeTag = 'all';
-let searchQuery = '';
-
+let activeTag = 'all', searchQuery = '';
 function applyFilter() {
-  let visibleCount = 0;
-  const sectionVisible = { pin:0, guide:0, strategy:0, cal:0, tool:0 };
-
+  let total = 0;
+  const secCount = { pin:0, guide:0, strategy:0, cal:0, tool:0 };
   document.querySelectorAll('.card').forEach(card => {
     const tags = card.dataset.tags.split(',');
     const name = card.querySelector('.card-name').textContent;
     const desc = card.querySelector('.card-desc').textContent;
-    const section = card.dataset.section;
-
-    const tagMatch = activeTag === 'all' || tags.includes(activeTag);
-    const searchMatch = !searchQuery || name.includes(searchQuery) || desc.includes(searchQuery) || tags.some(t => t.includes(searchQuery.replace('#','')));
-
-    const visible = tagMatch && searchMatch;
-    card.dataset.hidden = !visible;
-    card.style.display = visible ? '' : 'none';
-    if (visible) { visibleCount++; sectionVisible[section] = (sectionVisible[section]||0)+1; }
+    const sec = card.dataset.section;
+    const ok = (activeTag==='all' || tags.includes(activeTag)) &&
+               (!searchQuery || name.includes(searchQuery) || desc.includes(searchQuery) || tags.some(t=>t.includes(searchQuery.replace('#',''))));
+    card.style.display = ok ? '' : 'none';
+    if (ok) { total++; secCount[sec] = (secCount[sec]||0)+1; }
   });
-
-  // 섹션 숨기기
-  Object.entries(sectionVisible).forEach(([sec, cnt]) => {
-    const secEl = document.getElementById('section-' + (sec === 'strategy' ? 'strategy' : sec));
-    if (secEl) secEl.style.display = cnt === 0 ? 'none' : '';
+  Object.entries(secCount).forEach(([s,c]) => {
+    const el = document.getElementById('section-'+s);
+    if (el) el.style.display = c===0 ? 'none' : '';
   });
-
-  document.getElementById('emptyMsg').style.display = visibleCount === 0 ? 'block' : 'none';
+  document.getElementById('emptyMsg').style.display = total===0 ? 'block' : 'none';
 }
 
-// 태그 클릭
 document.getElementById('tagBar').addEventListener('click', e => {
   if (!e.target.classList.contains('tag')) return;
-  document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tag').forEach(t=>t.classList.remove('active'));
   e.target.classList.add('active');
   activeTag = e.target.dataset.tag;
   applyFilter();
 });
-
-// 검색
 document.getElementById('searchInput').addEventListener('input', e => {
   searchQuery = e.target.value.trim();
   applyFilter();
 });
 
-// ── 모바일 사이드바 ──
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('overlay');
-const menuBtn = document.getElementById('menuBtn');
-
-menuBtn.addEventListener('click', () => {
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('show');
-});
-overlay.addEventListener('click', () => {
-  sidebar.classList.remove('open');
-  overlay.classList.remove('show');
-});
-
-// ── 업데이트 배너 (latest_post.json 연동) ──
 async function loadBanner() {
   try {
     const res = await fetch('data/latest_post.json');
     if (!res.ok) throw new Error();
     const data = await res.json();
-    if (data.title) {
-      document.getElementById('bannerText').textContent = `새 글: ${data.title}`;
-    }
+    document.getElementById('bannerText').textContent = data.title
+      ? `새 글: ${data.title}`
+      : '공식 사이트에서 최신 업데이트를 확인하세요.';
   } catch {
     document.getElementById('bannerText').textContent = '공식 사이트에서 최신 업데이트를 확인하세요.';
   }
 }
 
-init();
+initCards();
 loadBanner();
 </script>
 </body>
