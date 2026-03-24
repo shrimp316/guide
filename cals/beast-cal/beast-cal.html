@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>각성·폭주 기대상승치 계산기 💎</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3248;
+      --primary: #6c8fff;
+      --primary-glow: rgba(108,143,255,0.18);
+      --gold: #f5c842;
+      --gold-dim: rgba(245,200,66,0.12);
+      --text: #e8eaf6;
+      --text-muted: #7b82a8;
+      --success: #4ade80;
+      --danger: #f87171;
+      --radius: 16px;
+      --card-radius: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "맑은 고딕", "Apple SD Gothic Neo", -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 160px;
+    }
+
+    /* ── 헤더 ── */
+    .app-header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12141e 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .app-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff 0%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* ── 버튼 공통 ── */
+    button {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      letter-spacing: -0.2px;
+    }
+    button:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
+    button:active { transform: scale(0.94); }
+    button.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 0 16px rgba(108,143,255,0.4);
+    }
+    button.btn-save { border-color: var(--success); color: var(--success); }
+    button.btn-save:hover { background: rgba(74,222,128,0.12); }
+    button.btn-reset { border-color: var(--danger); color: var(--danger); }
+    button.btn-reset:hover { background: rgba(248,113,113,0.12); }
+
+    /* ── 툴바 ── */
+    .toolbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+    }
+    .toolbar-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .toolbar-sep { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
+    select {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+    }
+    label.toggle-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; cursor: pointer; color: var(--text-muted);
+      white-space: nowrap;
+    }
+    label.toggle-label input { accent-color: var(--primary); }
+    .filter-label { font-size: 13px; color: var(--text-muted); }
+
+    /* ── 메인 레이아웃 ── */
+    .main-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* ── 카드 그리드 ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── 신수 카드 ── */
+    .monster-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .monster-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      border-color: var(--primary);
+    }
+    .monster-card.has-boost {
+      border-color: rgba(108,143,255,0.5);
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+    .monster-card.filtered-out {
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    /* 카드 상단: 이미지 + 이름 */
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px 12px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .card-img {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      object-fit: cover;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+    .card-img-placeholder {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--surface2), var(--bg));
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .card-title { flex: 1; min-width: 0; }
+    .card-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .card-effects {
+      margin-top: 3px;
+      display: flex; gap: 5px; flex-wrap: wrap;
+    }
+    .effect-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(108,143,255,0.3);
+      white-space: nowrap;
+    }
+
+    /* 카드 바디 */
+    .card-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* 단계 행 */
+    .step-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      width: 30px;
+      flex-shrink: 0;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── 통합 단계 칩 ── */
+    .step-group {
+      display: flex;
+      gap: 3px;
+      flex: 1;
+    }
+
+    /*
+      각 칩은 현재(C)와 목표(T) 상태를 동시에 표현
+      data-state: "none" | "cur" | "tar" | "both"
+      none  → 기본 (회색 테두리)
+      cur   → 현재 단계 (회색 채움)
+      tar   → 목표 단계 (파란 채움)
+      both  → 현재=목표 (보라/진한 파란)
+      range → 현재~목표 사이 (연한 파란 채움)
+    */
+    .step-chip {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      padding: 7px 0;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 8px;
+      text-align: center;
+      transition: all 0.13s;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      line-height: 1;
+      position: relative;
+      user-select: none;
+    }
+    .step-chip:active { transform: scale(0.86); }
+
+    /* 현재 단계 */
+    .step-chip[data-state="cur"] {
+      background: #3a3f52;
+      border-color: #6b7280;
+      color: #e8eaf6;
+    }
+    /* 현재~목표 사이 범위 */
+    .step-chip[data-state="range"] {
+      background: rgba(108,143,255,0.15);
+      border-color: rgba(108,143,255,0.35);
+      color: var(--primary);
+    }
+    /* 목표 단계 */
+    .step-chip[data-state="tar"] {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(108,143,255,0.5);
+    }
+    /* 현재=목표 (동일) */
+    .step-chip[data-state="both"] {
+      background: linear-gradient(135deg, #3a3f52 0%, var(--primary) 100%);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(108,143,255,0.4);
+    }
+
+    /* 칩 아래 점으로 현재/목표 구분 표시 */
+    .step-chip::after {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      margin: 3px auto 0;
+      opacity: 0;
+    }
+    .step-chip[data-state="cur"]::after   { background: #9ca3af; opacity: 1; }
+    .step-chip[data-state="tar"]::after   { background: #fff; opacity: 0.7; }
+    .step-chip[data-state="both"]::after  { background: #fff; opacity: 0.8; }
+    .step-chip[data-state="range"]::after { background: var(--primary); opacity: 0.6; }
+
+    /* 범례 */
+    .step-legend {
+      display: flex;
+      gap: 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      padding: 0 2px;
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 3px;
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+    .legend-cur  .legend-dot { background: #3a3f52; border: 1.5px solid #6b7280; }
+    .legend-tar  .legend-dot { background: var(--primary); }
+    .legend-both .legend-dot { background: linear-gradient(135deg,#3a3f52,var(--primary)); }
+
+    /* 카드 결과 영역 */
+    .card-result {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 11px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      border: 1px solid var(--border);
+    }
+    .result-boost {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: -0.5px;
+    }
+    .result-boost.no-boost { color: var(--text-muted); font-size: 16px; }
+    .result-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .result-gem {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+    }
+    .result-gem.zero { color: var(--text-muted); }
+    .result-eff {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 패치 비교 */
+    .card-compare {
+      display: none;
+      background: rgba(108,143,255,0.06);
+      border: 1px solid rgba(108,143,255,0.2);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12px;
+      gap: 6px;
+      flex-direction: column;
+    }
+    body.compare-on .card-compare { display: flex; }
+    .compare-row {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .compare-label { color: var(--text-muted); font-size: 12px; }
+    .compare-val { font-weight: 700; font-size: 12px; }
+    .compare-delta-pos { color: var(--success); }
+    .compare-delta-neg { color: var(--danger); }
+
+    /* ── 하단 요약 패널 ── */
+    #summary-panel {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .summary-handle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .summary-handle-left {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .summary-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .summary-gem-preview {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .summary-chevron {
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: transform 0.3s;
+    }
+    #summary-panel.expanded .summary-chevron { transform: rotate(180deg); }
+
+    .summary-body {
+      display: none;
+      padding: 4px 20px 20px;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+    #summary-panel.expanded .summary-body { display: grid; }
+
+    .summary-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 13px;
+    }
+    .summary-card-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 600; letter-spacing: 0.3px; }
+    .summary-card-val { font-size: 14px; font-weight: 700; color: var(--text); }
+    .summary-card.gold-card { border-color: rgba(245,200,66,0.3); background: var(--gold-dim); }
+    .summary-card.gold-card .summary-card-val { color: var(--gold); }
+    .summary-card.blue-card { border-color: rgba(108,143,255,0.3); background: var(--primary-glow); }
+    .summary-card.blue-card .summary-card-val { color: var(--primary); font-size: 13px; }
+    .summary-card.full { grid-column: 1 / -1; }
+
+    /* ── 정렬/필터 배지 ── */
+    .sort-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(108,143,255,0.3);
+      display: none;
+    }
+    .sort-badge.visible { display: inline-block; }
+
+    /* ── 빈 상태 ── */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    /* ── 모바일 ── */
+    @media (max-width: 600px) {
+      .card-grid { grid-template-columns: 1fr; gap: 12px; }
+      .main-wrap { padding: 14px 10px; }
+      .step-btn { width: 36px; padding: 7px 0; font-size: 14px; }
+      .card-name { font-size: 16px; }
+      .result-boost { font-size: 20px; }
+      .summary-body { grid-template-columns: 1fr; }
+      .summary-card.full { grid-column: 1; }
+      .app-header h2 { font-size: 17px; }
+    }
+    @media (min-width: 601px) and (max-width: 900px) {
+      .card-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+<script src="../../components.js" defer></script>
+</head>
+<body>
+<div class="app"><main class="main" style="max-width:960px">
+
+
+  <!-- 헤더 -->
+  <div class="app-header">
+    <div class="header-inner">
+      <h2>각성·폭주 기대상승치 계산기 💎</h2>
+      <div class="header-actions">
+        <a href="https://sites.google.com/view/brickinc/%ED%99%88" target="_blank" style="text-decoration:none;">
+          <button>🏠 홈</button>
+        </a>
+        <button class="btn-save" onclick="saveData()">💾 저장</button>
+        <button onclick="loadData()">📂 불러오기</button>
+        <button class="btn-reset" onclick="resetData()">🗑️ 초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 툴바 -->
+  <div class="toolbar">
+    <div class="toolbar-inner">
+      <button id="btnSort" onclick="toggleSort()">📈 효율 정렬</button>
+      <span id="sortBadge" class="sort-badge">정렬 중</span>
+      <button onclick="resetSort()">🔁 초기화</button>
+      <div class="toolbar-sep"></div>
+      <button id="btnFmtSuffix" onclick="setNumFormat('suffix')" class="active">접미사</button>
+      <button id="btnFmtSci" onclick="setNumFormat('sci')">과학표기</button>
+      <div class="toolbar-sep"></div>
+      <span class="filter-label">🔍</span>
+      <select id="effectFilter" onchange="applyFilter()">
+        <option value="all">전체 신수</option>
+      </select>
+      <div class="toolbar-sep"></div>
+      <label class="toggle-label">
+        <input type="checkbox" id="compareToggle" onchange="toggleCompare()" />
+        🧾 패치 비교
+      </label>
+    </div>
+  </div>
+
+  <!-- 카드 그리드 -->
+  <div class="main-wrap">
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <!-- 하단 요약 패널 -->
+  <div id="summary-panel">
+    <div class="summary-handle" onclick="toggleSummary()">
+      <div class="summary-handle-left">
+        <span class="summary-title">📊 결과 요약</span>
+        <span class="summary-gem-preview" id="sum-gem-preview">💎 0</span>
+      </div>
+      <span class="summary-chevron">▲</span>
+    </div>
+    <div class="summary-body" id="summary-body">
+      <div class="summary-card gold-card full">
+        <div class="summary-card-label">💎 총 예상 보석 가치</div>
+        <div class="summary-card-val" id="sum-gem">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">정수</div>
+        <div class="summary-card-val" id="sum-jung">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">파멸의조각</div>
+        <div class="summary-card-val" id="sum-pameol">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">각성의돌</div>
+        <div class="summary-card-val" id="sum-gak">0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-label">파멸의돌</div>
+        <div class="summary-card-val" id="sum-chowol">0</div>
+      </div>
+      <div class="summary-card blue-card">
+        <div class="summary-card-label">📉 구버전 폭주 배율</div>
+        <div class="summary-card-val" id="sum-oldF">x1.00</div>
+      </div>
+      <div class="summary-card blue-card">
+        <div class="summary-card-label">📈 신버전 폭주 배율</div>
+        <div class="summary-card-val" id="sum-newF">x1.00</div>
+      </div>
+      <div class="summary-card blue-card">
+        <div class="summary-card-label">📊 폭주 패치 영향</div>
+        <div class="summary-card-val" id="sum-deltaF">0%</div>
+      </div>
+      <div class="summary-card blue-card">
+        <div class="summary-card-label">📍 현재 단계 패치 영향</div>
+        <div class="summary-card-val" id="sum-currentDelta">0%</div>
+      </div>
+      <div class="summary-card full">
+        <div class="summary-card-label">효과별 상승 배율</div>
+        <div class="summary-card-val" id="sum-effects" style="font-size:13px;white-space:pre-line;line-height:1.7;">없음</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================
+    // 데이터
+    // ============================
+    const resourceData = {
+      awakening: {
+        1:{정수:9,파멸의조각:0,각성의돌:2,파멸의돌:0},
+        2:{정수:22,파멸의조각:0,각성의돌:4,파멸의돌:0},
+        3:{정수:44,파멸의조각:0,각성의돌:8,파멸의돌:0},
+        4:{정수:0,파멸의조각:111,각성의돌:0,파멸의돌:5},
+        5:{정수:0,파멸의조각:222,각성의돌:0,파멸의돌:10}
+      },
+      frenzy: {
+        1:{각성의돌:4,파멸의돌:0},2:{각성의돌:8,파멸의돌:0},
+        3:{각성의돌:16,파멸의돌:0},4:{각성의돌:0,파멸의돌:10},
+        5:{각성의돌:0,파멸의돌:20}
+      }
+    };
+    const price={정수:40,파멸의조각:0,각성의돌:220,파멸의돌:1550};
+
+    const effectGroups={
+      "골드":["골드"],"파워":["파워","무기 대미지","치명타 대미지","무기 강화 효과"],
+      "영혼":["영혼"],"연구 비용":["연구 비용"],"무기 비용":["무기 비용"],
+      "벽돌 내구도":["벽돌 내구도"],"랭크업 파워 감소":["랭크업 파워 감소"],
+      "전투 능력치":["전투 능력치"],"에테르":["에테르"],"계시의 빛":["계시의 빛"],
+      "종말의 재":["종말의 재"],"운명 에너지":["운명 에너지"],
+      "과학 포인트":["과학 포인트"],"양자 포인트":["양자 포인트"],"차원 에너지":["차원 에너지"]
+    };
+
+    const effectValues={},effectValuesOld={};
+    [
+      {names:["골드","파워","영혼","연구 비용","무기 비용","무기 대미지","벽돌 내구도","치명타 대미지","무기 강화 효과","랭크업 파워 감소","과학 포인트"],
+       data:{base:1,awakening:[2,4,8,32,256],frenzy:[2,8,32,256,4096]}},
+      {names:["양자 포인트","전투 능력치","계시의 빛","종말의 재","운명 에너지"],
+       data:{base:1,awakening:[1.5,2,4,12,64],frenzy:[1.5,3,12,64,512]}},
+      {names:["에테르","차원 에너지"],
+       data:{base:1,awakening:[1.25,1.5,2,4,12],frenzy:[1.25,2,4,16,96]}}
+    ].forEach(g=>g.names.forEach(n=>effectValues[n]=g.data));
+    [
+      {names:["골드","파워","영혼","연구 비용","무기 비용","무기 대미지","벽돌 내구도","치명타 대미지","무기 강화 효과","랭크업 파워 감소","과학 포인트"],
+       data:{base:1,awakening:[2,4,8,32,256],frenzy:[4,8,16,64,512]}},
+      {names:["양자 포인트","전투 능력치","계시의 빛","종말의 재","운명 에너지"],
+       data:{base:1,awakening:[1.5,2,4,12,64],frenzy:[2,4,8,24,128]}},
+      {names:["에테르","차원 에너지"],
+       data:{base:1,awakening:[1.25,1.5,2,4,12],frenzy:[1.5,2,4,12,64]}}
+    ].forEach(g=>g.names.forEach(n=>effectValuesOld[n]=g.data));
+
+    const monsterOverrides={
+      "그리핀":{
+        "과학 포인트":{base:1,awakening:[1.5,2,4,12,64],frenzy:[2,4,8,24,128]},
+        "양자 포인트":{base:1,awakening:[1.5,2,4,12,64],frenzy:[2,4,8,24,128]}
+      }
+    };
+
+    const monsters={
+      "녹새":["골드",""],"덴드로스":["파워",""],"플라텀":["연구 비용","무기 비용"],
+      "모라크":["무기 대미지",""],"그란디우스":["골드","영혼"],"이노크시스":["벽돌 내구도",""],
+      "테쿠마":["치명타 대미지",""],"청룡":["무기 강화 효과",""],"기린":["파워","영혼"],
+      "차":["무기 대미지",""],"아이오":["골드",""],"페가수스":["벽돌 내구도",""],
+      "톰톰":["연구 비용","무기 비용"],"불사조":["무기 강화 효과",""],"아르케로스":["골드","파워"],
+      "오리오나":["치명타 대미지",""],"우로보로스":["무기 대미지","영혼"],"크라켄":["벽돌 내구도",""],
+      "케르베로스":["무기 강화 효과",""],"세계수":["랭크업 파워 감소",""],"키메라":["과학 포인트",""],
+      "퀘찰코아틀":["골드",""],"헤파이스토스":["무기 강화 효과",""],"흑룡":["영혼",""],
+      "요르문간드":["전투 능력치",""],"이그드라실":["차원 에너지",""],"세라핌":["에테르",""],
+      "에키드나":["파워","치명타 대미지"],"그리핀":["과학 포인트","양자 포인트"],
+      "티폰":["전투 능력치","계시의 빛"],"메두사":["종말의 재","운명 에너지"],
+      "발키리":["치명타 대미지","영혼"],"아누비스":["골드","랭크업 파워 감소"]
+    };
+
+    // ── 포맷 ──
+    let numFmt="suffix";
+    function setNumFormat(m){
+      numFmt=m;
+      document.getElementById("btnFmtSuffix").classList.toggle("active",m==="suffix");
+      document.getElementById("btnFmtSci").classList.toggle("active",m==="sci");
+      calculate();
+    }
+    function toNum(x){const n=Number(x);return Number.isFinite(n)?n:0;}
+    function lettersFromIndex(i){let n=i+1,s="";while(n>0){n--;s=String.fromCharCode(97+(n%26))+s;n=Math.floor(n/26);}return s;}
+    function suffixForTier(t){if(t<=0)return"";if(t===1)return"K";if(t===2)return"M";if(t===3)return"B";if(t===4)return"T";return lettersFromIndex(t-5);}
+    function formatSuffix(n,d=2){n=toNum(n);if(!n)return"0";const s=n<0?"-":"";n=Math.abs(n);const t=Math.floor(Math.log10(n)/3);if(t<=0)return s+n.toLocaleString(undefined,{maximumFractionDigits:d});return`${s}${(n/Math.pow(10,t*3)).toLocaleString(undefined,{maximumFractionDigits:d})}${suffixForTier(t)}`;}
+    function formatSci(n,d=2){n=toNum(n);if(!n)return"0";const e=Math.floor(Math.log10(Math.abs(n)));return(n/Math.pow(10,e)).toFixed(d)+"e+"+e;}
+    function formatNum(n,d=2){return numFmt==="sci"?formatSci(n,d):formatSuffix(n,d);}
+    function formatRatio(n){n=Number(n);if(!Number.isFinite(n)||!n)return"0";const a=Math.abs(n);if(a<0.001||a>=1000){const e=Math.floor(Math.log10(a));return(n/Math.pow(10,e)).toFixed(3)+"e"+e;}return formatNum(n,3);}
+
+    // ── 통합 칩 (현재/목표 한 줄) ──
+    /*
+      클릭 규칙:
+        현재=0, 목표=0  → 클릭 시 현재=i, 목표=i (both)
+        현재=i, 목표=i  → 클릭 같은 칩: 현재=0, 목표=0 (리셋)
+                          클릭 다른 칩 (j>i): 목표=j
+                          클릭 다른 칩 (j<i): 현재=j, 목표=i 유지 (현재 변경)
+        현재<목표일 때   → 클릭 칩(j):
+                            j < 현재: 현재=j
+                            현재<=j<=목표: 목표=j (목표 당김)
+                            j > 목표: 목표=j
+    */
+    function updateChipStates(group) {
+      const cur = Number(group.dataset.cur);
+      const tar = Number(group.dataset.tar);
+      const hasCur = group.dataset.hascur === "1";
+      const hasTar = group.dataset.hastar === "1";
+
+      group.querySelectorAll(".step-chip").forEach(chip => {
+        const v = Number(chip.dataset.v);
+        let state = "none";
+        if (hasCur && hasTar) {
+          if (v === cur && v === tar) state = "both";
+          else if (v === cur)        state = "cur";
+          else if (v === tar)        state = "tar";
+          else if (v > cur && v < tar) state = "range";
+        } else if (hasCur) {
+          if (v === cur) state = "cur";
+        }
+        chip.dataset.state = state;
+      });
+    }
+
+    function createDualStepGroup(group) {
+      group.dataset.cur = "0";
+      group.dataset.tar = "0";
+      group.dataset.hascur = "0";
+      group.dataset.hastar = "0";
+      for (let i = 0; i <= 5; i++) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.textContent = i;
+        chip.className = "step-chip";
+        chip.dataset.v = String(i);
+        chip.dataset.state = "none";
+
+        chip.onclick = () => {
+          const card = group.closest(".monster-card");
+
+          const hasCur = group.dataset.hascur === "1";
+          const hasTar = group.dataset.hastar === "1";
+
+          if (!hasCur) {
+            // 아무것도 없음 → 현재 설정
+            group.dataset.cur = String(i);
+            group.dataset.hascur = "1";
+            group.dataset.tar = String(i);
+            group.dataset.hastar = "0"; // 목표는 아직 미설정
+          } else if (!hasTar) {
+            // 현재만 있음
+            const cur = Number(group.dataset.cur);
+            if (i === cur) {
+              // 현재 칩 다시 누름 → 리셋
+              group.dataset.hascur = "0";
+              group.dataset.hastar = "0";
+            } else if (i > cur) {
+              // 현재보다 큰 칩 → 목표 설정
+              group.dataset.tar = String(i);
+              group.dataset.hastar = "1";
+            } else {
+              // 현재보다 작은 칩 → 현재 변경
+              group.dataset.cur = String(i);
+              group.dataset.tar = String(i);
+            }
+          } else {
+            // 현재+목표 모두 있음
+            const cur = Number(group.dataset.cur);
+            const tar = Number(group.dataset.tar);
+            if (i === cur && i === tar) {
+              // 현재=목표 동일 칩 재클릭 → 리셋
+              group.dataset.hascur = "0";
+              group.dataset.hastar = "0";
+            } else if (i === cur) {
+              // 현재 칩 클릭 → 리셋 후 현재=i 재설정
+              group.dataset.hascur = "1";
+              group.dataset.hastar = "0";
+              group.dataset.cur = String(i);
+              group.dataset.tar = String(i);
+            } else if (i < cur) {
+              // 현재보다 왼쪽 → 현재 당김
+              group.dataset.cur = String(i);
+            } else if (i === tar) {
+              // 목표 칩 재클릭 → 목표 제거 (현재만 남김)
+              group.dataset.hastar = "0";
+              group.dataset.tar = group.dataset.cur;
+            } else {
+              // 그 외 → 목표 이동
+              group.dataset.tar = String(i);
+            }
+          }
+
+          updateChipStates(group);
+          calculate();
+        };
+        group.appendChild(chip);
+      }
+      updateChipStates(group);
+    }
+
+    function getDualCur(group) { return Number(group?.dataset?.cur || 0); }
+    function getDualTar(group) {
+      if (!group) return 0;
+      if (group.dataset.hastar === "1") return Number(group.dataset.tar || 0);
+      return Number(group.dataset.cur || 0); // 목표 미설정 시 현재=목표
+    }
+    function setDualValues(group, cur, tar) {
+      cur = Math.max(0, Math.min(5, cur));
+      tar = Math.max(cur, Math.min(5, tar));
+      const hasAny = group.dataset.hascur === "1" || cur !== 0 || tar !== 0;
+      group.dataset.cur = String(cur);
+      group.dataset.tar = String(tar);
+      group.dataset.hascur = (cur !== 0 || tar !== 0) ? "1" : "0";
+      group.dataset.hastar = (cur !== tar) ? "1" : (group.dataset.hascur === "1" ? "1" : "0");
+      updateChipStates(group);
+    }
+
+    // ── 필터 옵션 ──
+    const ef=document.getElementById("effectFilter");
+    Object.keys(effectGroups).forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g;ef.appendChild(o);});
+
+    // ── 카드 생성 ──
+    const grid=document.getElementById("card-grid");
+    let originalOrder=[];
+
+    function makeCard(name){
+      const [eff1,eff2]=monsters[name];
+      const card=document.createElement("div");
+      card.className="monster-card";
+      card.dataset.name=name;
+
+      // 이미지
+      const imgEl=document.createElement("img");
+      imgEl.className="card-img";
+      imgEl.src=`images/${name}.png`;
+      imgEl.alt=name;
+      imgEl.onerror=function(){
+        const ph=document.createElement("div");
+        ph.className="card-img-placeholder";
+        ph.textContent="🐉";
+        this.replaceWith(ph);
+      };
+
+      // 효과 태그
+      const effectsHtml=[eff1,eff2].filter(Boolean).map(e=>`<span class="effect-tag">${e}</span>`).join("");
+
+      card.innerHTML=`
+        <div class="card-top">
+          <div class="card-img-wrap"></div>
+          <div class="card-title">
+            <div class="card-name">${name}</div>
+            <div class="card-effects">${effectsHtml}</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="step-row">
+            <span class="step-label">각성</span>
+            <div class="step-group dual-step" data-cur="0" data-tar="0" data-type="awakening"></div>
+          </div>
+          <div class="step-row">
+            <span class="step-label">폭주</span>
+            <div class="step-group dual-step" data-cur="0" data-tar="0" data-type="frenzy"></div>
+          </div>
+          <div class="step-legend">
+            <span class="legend-cur"><span class="legend-dot"></span>현재</span>
+            <span class="legend-tar"><span class="legend-dot"></span>목표</span>
+            <span class="legend-both"><span class="legend-dot"></span>현재=목표</span>
+          </div>
+          <div class="card-result">
+            <div class="result-boost no-boost card-boost">-</div>
+            <div class="result-meta">
+              <div class="result-gem zero card-gem">💎 0</div>
+              <div class="result-eff card-eff">효율: -</div>
+            </div>
+          </div>
+          <div class="card-compare">
+            <div class="compare-row">
+              <span class="compare-label">구버전 폭주</span>
+              <span class="compare-val card-oldF">x1.00</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-label">신버전 폭주</span>
+              <span class="compare-val card-newF">x1.00</span>
+            </div>
+            <div class="compare-row">
+              <span class="compare-label">변동</span>
+              <span class="compare-val card-deltaF">0%</span>
+            </div>
+          </div>
+        </div>`;
+
+      card.querySelector(".card-img-wrap").appendChild(imgEl);
+
+      // 통합 칩 생성 (각성/폭주 각 1행)
+      card.querySelectorAll(".dual-step").forEach(group => {
+        createDualStepGroup(group);
+      });
+
+      grid.appendChild(card);
+      return card;
+    }
+
+    Object.keys(monsters).forEach(n=>makeCard(n));
+    originalOrder=Array.from(grid.children);
+
+    // ── 계산 ──
+    function sumRes(cur,tar,type){
+      const r={정수:0,파멸의조각:0,각성의돌:0,파멸의돌:0};
+      for(let i=cur+1;i<=tar;i++){const row=resourceData[type][i];if(row)for(const k in row)r[k]+=row[k];}
+      return r;
+    }
+    function getEffData(monster,eff,old=false){
+      if(monsterOverrides[monster]?.[eff])return monsterOverrides[monster][eff];
+      return(old?effectValuesOld[eff]:effectValues[eff])||null;
+    }
+    function getBoost(monster,eff,aC,aT,fC,fT){
+      const d=getEffData(monster,eff);if(!d)return 1;
+      const aS=aC?d.awakening[aC-1]||d.base:d.base;
+      const aE=aT?d.awakening[aT-1]||d.base:d.base;
+      const fS=fC?d.frenzy[fC-1]||d.base:d.base;
+      const fE=fT?d.frenzy[fT-1]||d.base:d.base;
+      return (aE/aS)*(fE/fS);
+    }
+    function getFrenzyBoost(monster,eff,fC,fT,old=false){
+      if(!eff)return 1;
+      const d=getEffData(monster,eff,old);if(!d)return 1;
+      const fS=fC?d.frenzy[fC-1]||d.base:d.base;
+      const fE=fT?d.frenzy[fT-1]||d.base:d.base;
+      return fE/fS;
+    }
+
+    function calculate(){
+      let tot={정수:0,파멸의조각:0,각성의돌:0,파멸의돌:0,gem:0};
+      let totalOldF=1,totalNewF=1,totalCurOld=1,totalCurNew=1;
+      let effectResults={};
+
+      document.querySelectorAll(".monster-card").forEach(card=>{
+        const name=card.dataset.name;
+        const [eff1,eff2]=monsters[name];
+        const aGroup=card.querySelectorAll(".dual-step")[0];
+        const fGroup=card.querySelectorAll(".dual-step")[1];
+        const aC=getDualCur(aGroup), aT=getDualTar(aGroup);
+        const fC=getDualCur(fGroup), fT=getDualTar(fGroup);
+
+        const rA=sumRes(aC,aT,"awakening"),rF=sumRes(fC,fT,"frenzy");
+        const sum={정수:rA.정수,파멸의조각:rA.파멸의조각,각성의돌:rA.각성의돌+rF.각성의돌,파멸의돌:rA.파멸의돌+rF.파멸의돌};
+        const gem=sum.정수*price.정수+sum.파멸의조각*price.파멸의조각+sum.각성의돌*price.각성의돌+sum.파멸의돌*price.파멸의돌;
+
+        const b1=getBoost(name,eff1,aC,aT,fC,fT);
+        const b2=getBoost(name,eff2,aC,aT,fC,fT);
+        const boostVal=Math.max(b1,b2);
+        const hasBoost=boostVal>1.001;
+        const eff=gem>0?(boostVal/gem).toFixed(6):0;
+
+        // 패치 비교
+        const oldF=Math.max(getFrenzyBoost(name,eff1,fC,fT,true),getFrenzyBoost(name,eff2,fC,fT,true));
+        const newF=Math.max(getFrenzyBoost(name,eff1,fC,fT,false),getFrenzyBoost(name,eff2,fC,fT,false));
+        const deltaPct=oldF>0?((newF/oldF)-1)*100:0;
+        const oldCur=Math.max(getFrenzyBoost(name,eff1,0,fC,true),getFrenzyBoost(name,eff2,0,fC,true));
+        const newCur=Math.max(getFrenzyBoost(name,eff1,0,fC,false),getFrenzyBoost(name,eff2,0,fC,false));
+
+        if(oldF>1||newF>1){totalOldF*=oldF;totalNewF*=newF;}
+        if(oldCur>1||newCur>1){totalCurOld*=oldCur;totalCurNew*=newCur;}
+
+        // 효과 누적
+        for(const g in effectGroups){
+          if(effectGroups[g].includes(eff1))effectResults[g]=(effectResults[g]||1)*b1;
+          if(effectGroups[g].includes(eff2))effectResults[g]=(effectResults[g]||1)*b2;
+        }
+
+        // UI 업데이트
+        card.classList.toggle("has-boost",hasBoost);
+        const boostEl=card.querySelector(".card-boost");
+        boostEl.textContent=hasBoost?"x"+formatNum(boostVal,2):"-";
+        boostEl.className="result-boost card-boost"+(hasBoost?"":" no-boost");
+
+        const gemEl=card.querySelector(".card-gem");
+        gemEl.textContent="💎 "+gem.toLocaleString();
+        gemEl.className="result-gem card-gem"+(gem>0?"":" zero");
+
+        card.querySelector(".card-eff").textContent="효율: "+eff;
+        card.querySelector(".card-oldF").textContent="x"+formatNum(oldF,2);
+        card.querySelector(".card-newF").textContent="x"+formatNum(newF,2);
+        const dEl=card.querySelector(".card-deltaF");
+        dEl.textContent=(deltaPct>=0?"+":"")+deltaPct.toFixed(1)+"%";
+        dEl.className="compare-val card-deltaF "+(deltaPct>=0?"compare-delta-pos":"compare-delta-neg");
+
+        tot.정수+=sum.정수;tot.파멸의조각+=sum.파멸의조각;
+        tot.각성의돌+=sum.각성의돌;tot.파멸의돌+=sum.파멸의돌;tot.gem+=gem;
+      });
+
+      // 요약 업데이트
+      const gemStr=tot.gem.toLocaleString();
+      document.getElementById("sum-gem-preview").textContent="💎 "+gemStr;
+      document.getElementById("sum-gem").textContent=gemStr;
+      document.getElementById("sum-jung").textContent=tot.정수.toLocaleString();
+      document.getElementById("sum-pameol").textContent=tot.파멸의조각.toLocaleString();
+      document.getElementById("sum-gak").textContent=tot.각성의돌.toLocaleString();
+      document.getElementById("sum-chowol").textContent=tot.파멸의돌.toLocaleString();
+
+      const totalDelta=totalOldF>0?((totalNewF/totalOldF)-1)*100:0;
+      document.getElementById("sum-oldF").textContent="x"+formatNum(totalOldF,2);
+      document.getElementById("sum-newF").textContent="x"+formatNum(totalNewF,2);
+      document.getElementById("sum-deltaF").textContent=(totalDelta>=0?"+":"")+formatNum(totalDelta,2)+"%";
+
+      const ratio=totalCurOld>0?totalCurNew/totalCurOld:1;
+      const pct=(ratio-1)*100;
+      const disp=ratio>=1?"x "+formatRatio(ratio):"÷ "+formatRatio(1/ratio);
+      document.getElementById("sum-currentDelta").textContent=disp+" ("+(pct>=0?"+":"")+formatNum(pct,2)+"%)";
+
+      let effText="";
+      for(const g in effectResults){if(effectResults[g]>1.001)effText+=`${g}: ${formatNum(effectResults[g],2)} 배\n`;}
+      document.getElementById("sum-effects").textContent=effText.trim()||"없음";
+    }
+
+    // ── 필터 ──
+    function applyFilter(){
+      const sel=document.getElementById("effectFilter").value;
+      document.querySelectorAll(".monster-card").forEach(card=>{
+        const name=card.dataset.name;
+        const [e1,e2]=monsters[name];
+        const show=sel==="all"||effectGroups[sel]?.includes(e1)||effectGroups[sel]?.includes(e2);
+        card.classList.toggle("filtered-out",!show);
+      });
+    }
+
+    // ── 정렬 ──
+    let sortDesc=true,isSorted=false;
+    function toggleSort(){
+      const cards=Array.from(grid.querySelectorAll(".monster-card"));
+      cards.sort((a,b)=>{
+        const ae=parseFloat(a.querySelector(".card-eff").textContent.replace("효율: ","")||0);
+        const be=parseFloat(b.querySelector(".card-eff").textContent.replace("효율: ","")||0);
+        return sortDesc?be-ae:ae-be;
+      });
+      sortDesc=!sortDesc;isSorted=true;
+      cards.forEach(c=>grid.appendChild(c));
+      document.getElementById("sortBadge").classList.add("visible");
+    }
+    function resetSort(){
+      originalOrder.forEach(c=>grid.appendChild(c));
+      sortDesc=true;isSorted=false;
+      document.getElementById("sortBadge").classList.remove("visible");
+    }
+
+    // ── 저장/불러오기 ──
+    function saveData(){
+      const save={};
+      document.querySelectorAll(".monster-card").forEach(card=>{
+        const groups=card.querySelectorAll(".dual-step");
+        save[card.dataset.name]={
+          aC:groups[0].dataset.cur, aT:groups[0].dataset.tar,
+          fC:groups[1].dataset.cur, fT:groups[1].dataset.tar
+        };
+      });
+      localStorage.setItem("calcDataV3",JSON.stringify(save));
+      alert("저장 완료 ✅");
+    }
+    function loadData(){
+      const s=JSON.parse(localStorage.getItem("calcDataV3")||"{}");
+      if(!Object.keys(s).length)return alert("저장된 데이터가 없어요");
+      document.querySelectorAll(".monster-card").forEach(card=>{
+        const d=s[card.dataset.name]; if(!d)return;
+        const groups=card.querySelectorAll(".dual-step");
+        setDualValues(groups[0], Number(d.aC||0), Number(d.aT||0));
+        setDualValues(groups[1], Number(d.fC||0), Number(d.fT||0));
+      });
+      calculate(); alert("불러오기 완료 ✅");
+    }
+    function resetData(){
+      document.querySelectorAll(".monster-card").forEach(card=>{
+        card.querySelectorAll(".dual-step").forEach(g=>setDualValues(g,0,0));
+      });
+      calculate(); resetSort();
+    }
+
+    // ── 패치 비교 토글 ──
+    function toggleCompare(){
+      document.body.classList.toggle("compare-on",document.getElementById("compareToggle").checked);
+    }
+
+    // ── 요약 패널 ──
+    function toggleSummary(){
+      document.getElementById("summary-panel").classList.toggle("expanded");
+    }
+
+    setNumFormat("suffix");
+    calculate();
+  </script>
+
+</main></div>
+</body>
+</html>
