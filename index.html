@@ -338,13 +338,9 @@ const GUIDES = {
 let currentPage = 'home';
 
 function navigate(page) {
-  // 모바일 사이드바 닫기
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
-
-  // 해시 업데이트
-  location.hash = page === 'home' ? '' : page;
-
+  history.pushState({ page }, '', page === 'home' ? location.pathname : location.pathname + '#' + page);
   showPage(page);
 }
 
@@ -477,9 +473,9 @@ document.getElementById('overlay').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('show');
 });
 
-// ── 해시 라우팅 ──
-window.addEventListener('hashchange', () => {
-  const page = location.hash.replace('#', '') || 'home';
+// ── 히스토리 라우팅 ──
+window.addEventListener('popstate', (e) => {
+  const page = (e.state && e.state.page) || location.hash.replace('#', '') || 'home';
   showPage(page);
 });
 
@@ -487,6 +483,7 @@ window.addEventListener('hashchange', () => {
 initCards();
 loadBanner();
 const initPage = location.hash.replace('#', '') || 'home';
+history.replaceState({ page: initPage }, '', location.href);
 showPage(initPage);
 </script>
 </body>
