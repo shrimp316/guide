@@ -2,112 +2,155 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>진리의길 최적경로</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin-top: 20px;
+    :root {
+      --bg: #f5f4f0; --surface: #fff; --surface2: #f0efe9;
+      --border: #e2e0d8; --text: #1a1917; --text2: #6b6960; --text3: #9b998f;
+      --teal: #1D9E75; --teal-light: #E1F5EE; --teal-border: #5DCAA5;
+      --radius: 10px; --radius-sm: 6px;
     }
-    .grids-container {
-      display: flex;
-      justify-content: center;
-      gap: 50px;
-      margin-bottom: 20px;
-      align-items: flex-start; /* 상단 정렬 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', sans-serif, system-ui; background: var(--bg); color: var(--text); font-size: 14px; padding: 16px; min-height: 100vh; }
+
+    h1 { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .subtitle { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.5; margin-bottom: 16px; }
+
+    .controls { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 14px; }
+    .controls-label { font-size: 11px; font-weight: 500; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .btn { padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+    .btn:hover { border-color: var(--teal-border); color: var(--teal); }
+    .btn.active { background: var(--teal-light); border-color: var(--teal-border); color: #0F6E56; font-weight: 500; }
+    .btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 500; width: 100%; padding: 10px; border-radius: var(--radius-sm); font-size: 14px; margin-top: 4px; cursor: pointer; font-family: inherit; border: none; transition: background 0.15s; }
+    .btn-primary:hover { background: #0F6E56; }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .select-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .select-row label { font-size: 12px; color: var(--text2); white-space: nowrap; }
+    select { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-size: 13px; font-family: inherit; color: var(--text); outline: none; }
+
+    /* 현재 모드 뱃지 */
+    .mode-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--teal-light); border: 1px solid var(--teal-border);
+      border-radius: 99px; padding: 4px 12px;
+      font-size: 12px; color: #0F6E56; font-weight: 500;
+      margin-bottom: 10px;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(5, 50px);
-      grid-template-rows: repeat(5, 50px);
-      gap: 2px;
-    }
+    .mode-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+
+    /* 그리드 */
+    .grids-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .grid-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+    .grid-card h3 { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 100%; }
     .cell {
-      width: 50px;
-      height: 50px;
-      background-color: #f0f0f0;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      user-select: none;
-      touch-action: manipulation; /* 더블탭 확대 등 방지 */
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
+      aspect-ratio: 1; background: #E1F5EE; border: 1px solid #c8e6c9;
+      cursor: pointer; user-select: none; touch-action: manipulation;
+      -webkit-user-select: none; -webkit-touch-callout: none;
+      border-radius: 3px; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 500;
+      transition: transform 0.1s;
     }
-    .obstacle { background-color: #444; }
-    .start { background-color: #2196F3; color: white; }
-    .end { background-color: #FF5722; color: white; }
-    .path {
-      background-color: #4CAF50 !important;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 14px;
+    .cell.pop { transform: scale(0.82); }
+    .cell.obstacle { background: #424242; border-color: #212121; }
+    .cell.start { background: #1976D2; border-color: #0d47a1; }
+    .cell.end { background: #E64A19; border-color: #bf360c; }
+    .cell.path { background: #388E3C !important; border-color: #1b5e20 !important; color: #fff; }
+    .cell.grade-2 { background: #bdbdbd; border-color: #9e9e9e; }
+    .cell.grade-3 { background: #E1F5EE; border-color: #5DCAA5; }
+    .cell.grade-4 { background: #81d4fa; border-color: #0288d1; }
+    .cell.grade-5 { background: #fff176; border-color: #f9a825; color: #333; }
+    .cell.grade-6 { background: #ce93d8; border-color: #7b1fa2; color: #fff; }
+
+    /* 범례 */
+    .legend { display: flex; flex-wrap: wrap; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 14px; }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
+    .legend-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+    /* 결과 */
+    .result-card { background: var(--teal-light); border: 1px solid var(--teal-border); border-radius: var(--radius); padding: 12px; font-size: 13px; color: #0F6E56; font-weight: 500; text-align: center; }
+
+    /* 토스트 */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a1917; color: #fff; padding: 10px 20px;
+      border-radius: 99px; font-size: 13px; font-weight: 500;
+      z-index: 999; transition: transform 0.25s ease, opacity 0.25s ease;
+      opacity: 0; white-space: nowrap;
     }
-    .controls { margin-bottom: 10px; }
-    button { margin: 5px; padding: 6px 12px; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    .grade-2 { background-color: #9e9e9e; } /* 일반 - 회색 */
-    .grade-3 { background-color: #4caf50; } /* 고급 - 초록 */
-    .grade-4 { background-color: #81d4fa; } /* 희귀 - 하늘 */
-    .grade-5 { background-color: #ffeb3b; color: #000; } /* 전설 - 노랑 (글씨 검정) */
-    .grade-6 { background-color: #9c27b0; color: white; } /* 신화 - 보라 */
-
-    .subtitle {
-  margin: -10px auto 20px;   /* 제목과 조금 더 붙이고 전체와는 간격 */
-  max-width: 720px;          /* 너무 길면 읽기 힘드니 폭 제한 */
-  font-size: 14px;           /* 본문보다 살짝 작게 */
-  line-height: 1.6;
-  color: #666;               /* 눈에 덜 띄는 보조색 */
-}
+    @media (min-width: 480px) {
+      .grid { gap: 3px; }
+      .cell { font-size: 12px; }
+      h1 { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
 
   <h1>진리의길 최적경로</h1>
-  <p class="subtitle">
-  시작점과 도착점을 지정한 뒤, 장애물/등급을 설정하고 “최적 경로 찾기”를 누르면<br>
-  점수 합이 최대가 되는 경로를 계산해 표시합니다. (PC는 셀 우클릭 / 모바일은 셀을 길게 눌러 등급 변경)
-</p>
+  <p class="subtitle">시작점·도착점 지정 후 장애물/등급 설정 → 최적 경로 찾기<br>모바일: 길게 눌러 등급 변경 / PC: 우클릭으로 등급 변경</p>
+
   <div class="controls">
-    <span>모드 선택:</span>
-    <button onclick="setMode('start')">시작점</button>
-    <button onclick="setMode('end')">도착점</button>
-    <button onclick="setMode('obstacle')">장애물</button>
-    <button onclick="setMode('empty')">지우기</button>
-    <button onclick="toggleAllowObstacle()" id="obstacleToggle">장애물허용: OFF</button>
-    <button onclick="resetBoard()">입력 초기화</button>
-    <button onclick="setAllToGrade(2)">발판 일반</button>
-    <button onclick="setAllToGrade(3)">발판 고급</button>
+    <div class="controls-label">모드 선택</div>
+    <div class="btn-group" id="modeGroup">
+      <button class="btn active" onclick="setMode('obstacle')" id="btn-obstacle">장애물</button>
+      <button class="btn" onclick="setMode('start')" id="btn-start">시작점</button>
+      <button class="btn" onclick="setMode('end')" id="btn-end">도착점</button>
+      <button class="btn" onclick="setMode('empty')" id="btn-empty">지우기</button>
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="toggleAllowObstacle()" id="obstacleToggle">장애물허용: OFF</button>
+      <button class="btn" onclick="resetBoard()">초기화</button>
+      <button class="btn" onclick="setAllToGrade(2)">발판 일반</button>
+      <button class="btn" onclick="setAllToGrade(3)">발판 고급</button>
+    </div>
+    <div class="select-row">
+      <label>승천 단계</label>
+      <select id="multiplierStage">
+        <option value="1">1단계 (x1)</option>
+        <option value="2">2단계 (x2)</option>
+        <option value="3">3단계 (x4)</option>
+        <option value="4">4단계 (x8)</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="findOptimalPath()">최적 경로 찾기</button>
   </div>
 
-  <div class="grids-container">
-    <div>
-      <h3>승천</h3>
-      <label>승천 단계:
-        <select id="multiplierStage">
-          <option value="1">1단계 (x1)</option>
-          <option value="2">2단계 (x2)</option>
-          <option value="3">3단계 (x4)</option>
-          <option value="4">4단계 (x8)</option>
-        </select>
-      </label>
-    </div>
+  <!-- 현재 모드 뱃지 -->
+  <div class="mode-badge">
+    <div class="mode-badge-dot"></div>
+    현재 모드: <span id="modeBadgeText">장애물</span>
+  </div>
 
-    <div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#424242"></div>장애물</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1976D2"></div>시작</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E64A19"></div>도착</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#bdbdbd"></div>일반(1pt)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#E1F5EE;border:1px solid #5DCAA5"></div>고급(2pt)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#81d4fa"></div>희귀(4pt)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fff176;border:1px solid #f9a825"></div>전설(10pt)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ce93d8"></div>신화(30pt)</div>
+  </div>
+
+  <div class="grids-wrap">
+    <div class="grid-card">
       <h3>입력창</h3>
       <div class="grid" id="inputGrid"></div>
     </div>
-
-    <div>
+    <div class="grid-card">
       <h3>결과창</h3>
       <div class="grid" id="outputGrid"></div>
-      <p id="totalScore">총합 점수: 0</p>
     </div>
   </div>
 
-  <button onclick="findOptimalPath()">최적 경로 찾기</button>
+  <div class="result-card" id="totalScore">총합 점수: 0</div>
+  <div class="toast" id="toast"></div>
 
   <script>
     const size = 5;
@@ -115,19 +158,46 @@
     const outputGrid = document.getElementById("outputGrid");
     const board = Array.from({ length: size }, () => Array(size).fill(0));
     let mode = 'obstacle';
-    let start = null;
-    let end = null;
+    let start = null, end = null;
     let allowObstacle = false;
 
-    function setMode(newMode) { mode = newMode; }
+    const modeLabels = { obstacle:'장애물', start:'시작점', end:'도착점', empty:'지우기' };
+
+    function setMode(newMode) {
+      mode = newMode;
+      document.querySelectorAll('#modeGroup .btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + newMode)?.classList.add('active');
+      document.getElementById('modeBadgeText').textContent = modeLabels[newMode];
+    }
+
+    // 토스트 메시지
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+    }
+
+    // 셀 팝 애니메이션
+    function popCell(cell) {
+      cell.classList.add('pop');
+      setTimeout(() => cell.classList.remove('pop'), 100);
+    }
+
     function toggleAllowObstacle() {
       allowObstacle = !allowObstacle;
       document.getElementById("obstacleToggle").textContent = `장애물허용: ${allowObstacle ? 'ON' : 'OFF'}`;
+      showToast(`장애물 허용 ${allowObstacle ? 'ON' : 'OFF'}`);
     }
+
     function resetBoard() {
       for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) board[y][x] = 0;
       start = null; end = null;
       render(); clearOutput();
+      document.getElementById("totalScore").textContent = '총합 점수: 0';
+      showToast('초기화 완료');
     }
 
     function render() {
@@ -135,31 +205,11 @@
         const x = +cell.dataset.x, y = +cell.dataset.y;
         cell.className = 'cell';
         cell.textContent = '';
-
-        // 시작/도착이 최우선(시각만 덮어씀)
-        if (start && start[0] === x && start[1] === y) {
-          cell.classList.add('start');
-          return;
-        }
-        if (end && end[0] === x && end[1] === y) {
-          cell.classList.add('end');
-          return;
-        }
-
+        if (start && start[0] === x && start[1] === y) { cell.classList.add('start'); cell.textContent = 'S'; return; }
+        if (end && end[0] === x && end[1] === y) { cell.classList.add('end'); cell.textContent = 'E'; return; }
         const val = board[y][x];
-
-        // 장애물 그 다음
-        if (val === 1) {
-          cell.classList.add('obstacle');
-          return;
-        }
-
-        // 나머지는 등급/빈칸 색상
-        if (val >= 2) {
-          cell.classList.add(`grade-${val}`);
-        } else {
-          cell.classList.add('grade-3'); // 0도 고급색(초록)으로 표시
-        }
+        if (val === 1) { cell.classList.add('obstacle'); return; }
+        cell.classList.add(val >= 2 ? `grade-${val}` : 'grade-3');
       });
     }
 
@@ -167,95 +217,82 @@
       return (start && start[0] === x && start[1] === y) || (end && end[0] === x && end[1] === y);
     }
 
-    // ✅ 등급 순환 로직(우클릭/롱프레스에서 공용)
+    const gradeNames = { 3:'고급', 4:'희귀', 5:'전설', 6:'신화' };
     function cycleCellGrade(x, y) {
-      if (isStartOrEnd(x, y)) return;   // 시작/도착 보호
-      if (board[y][x] === 1) return;    // 장애물 보호
-
-      if (board[y][x] < 3) board[y][x] = 4;   // 첫 변경 = 희귀(현재 네 우클릭 로직과 일치)
-      else {
-        board[y][x]++;
-        if (board[y][x] > 6) board[y][x] = 3; // 3→4→5→6→3 순환
-      }
+      if (isStartOrEnd(x, y) || board[y][x] === 1) return;
+      board[y][x] = board[y][x] < 3 ? 4 : (board[y][x] >= 6 ? 3 : board[y][x] + 1);
+      // 팝 애니메이션
+      const idx = y * size + x;
+      popCell(inputGrid.children[idx]);
+      showToast(`${gradeNames[board[y][x]] ?? '등급'} 설정`);
       render();
     }
 
-    let suppressNextClick = false; // 롱프레스 후 click 억제용
-    let suppressNextContextMenu = false;  // 새로 추가
-    let lastLongPressTime = 0;  
-    // 셀 생성
+    let suppressNextClick = false;
+    let suppressNextContextMenu = false;
+    let lastLongPressTime = 0;
+
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const cell = document.createElement("div");
         cell.className = "cell"; cell.dataset.x = x; cell.dataset.y = y;
 
         cell.onclick = (e) => {
-          if (suppressNextClick) { suppressNextClick = false; return; } // 롱프레스 직후 click 무시
+          if (suppressNextClick) { suppressNextClick = false; return; }
           const cx = +cell.dataset.x, cy = +cell.dataset.y;
           if (mode === 'obstacle') {
-            if (!isStartOrEnd(cx, cy)) board[cy][cx] = board[cy][cx] === 1 ? 0 : 1;
-          } else if (mode === 'start') { start = [cx, cy]; }
-          else if (mode === 'end') { end = [cx, cy]; }
-          else if (mode === 'empty') {
+            if (!isStartOrEnd(cx, cy)) {
+              board[cy][cx] = board[cy][cx] === 1 ? 0 : 1;
+              popCell(cell);
+            }
+          } else if (mode === 'start') {
+            start = [cx, cy];
+            showToast('시작점 설정');
+          } else if (mode === 'end') {
+            end = [cx, cy];
+            showToast('도착점 설정');
+          } else if (mode === 'empty') {
             if (start && start[0] === cx && start[1] === cy) start = null;
             if (end && end[0] === cx && end[1] === cy) end = null;
             board[cy][cx] = 0;
+            popCell(cell);
           }
           render();
         };
 
-        // ✅ 데스크탑: 우클릭 → 등급 순환
         cell.oncontextmenu = (e) => {
           e.preventDefault();
-            if (suppressNextContextMenu || (Date.now() - lastLongPressTime) < 700) {
-            suppressNextContextMenu = false; // 1회성 플래그 해제
-           return;
+          if (suppressNextContextMenu || (Date.now() - lastLongPressTime) < 700) {
+            suppressNextContextMenu = false; return;
           }
           cycleCellGrade(x, y);
         };
 
-        // ✅ 모바일: 롱프레스 → 등급 순환
-(() => {
-  const LONG_MS = 450;  // 롱프레스 시간
-  const MOVE_TOL = 10;  // 허용 이동(px)
-  let timer = null;
-  let triggered = false;
-  let sx = 0, sy = 0;
-
-  cell.addEventListener('touchstart', (e) => {
-    if (e.touches.length > 1) return; // 멀티터치 무시
-    triggered = false;
-    sx = e.touches[0].clientX;
-    sy = e.touches[0].clientY;
-    timer = setTimeout(() => {
-      triggered = true;
-      lastLongPressTime = Date.now();     // ✅ 롱프레스 시각 기록
-      suppressNextContextMenu = true;     // ✅ 뒤따를 contextmenu 무시
-      cycleCellGrade(x, y);               // 우클릭 대체
-      if (navigator.vibrate) navigator.vibrate(10);
-    }, LONG_MS);
-  }, { passive: true });
-
-  cell.addEventListener('touchmove', (e) => {
-    const t = e.touches[0];
-    if (Math.abs(t.clientX - sx) > MOVE_TOL || Math.abs(t.clientY - sy) > MOVE_TOL) {
-      clearTimeout(timer); // 이동 시 롱프레스 취소
-    }
-  }, { passive: true });
-
-  cell.addEventListener('touchend', (e) => {
-    clearTimeout(timer);
-    if (triggered) {
-      suppressNextClick = true; // ✅ 롱프레스 후 따라오는 click 무시
-      e.preventDefault();
-    }
-  }, { passive: false });
-
-  cell.addEventListener('touchcancel', () => clearTimeout(timer), { passive: true });
-})();
+        (() => {
+          const LONG_MS = 450, MOVE_TOL = 10;
+          let timer = null, triggered = false, sx = 0, sy = 0;
+          cell.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 1) return;
+            triggered = false; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+            timer = setTimeout(() => {
+              triggered = true; lastLongPressTime = Date.now();
+              suppressNextContextMenu = true;
+              cycleCellGrade(x, y);
+              if (navigator.vibrate) navigator.vibrate(10);
+            }, LONG_MS);
+          }, { passive: true });
+          cell.addEventListener('touchmove', (e) => {
+            const t = e.touches[0];
+            if (Math.abs(t.clientX - sx) > MOVE_TOL || Math.abs(t.clientY - sy) > MOVE_TOL) clearTimeout(timer);
+          }, { passive: true });
+          cell.addEventListener('touchend', (e) => {
+            clearTimeout(timer);
+            if (triggered) { suppressNextClick = true; e.preventDefault(); }
+          }, { passive: false });
+          cell.addEventListener('touchcancel', () => clearTimeout(timer), { passive: true });
+        })();
 
         inputGrid.appendChild(cell);
-
         const outputCell = document.createElement("div");
         outputCell.className = "cell"; outputCell.dataset.x = x; outputCell.dataset.y = y;
         outputGrid.appendChild(outputCell);
@@ -263,109 +300,62 @@
     }
 
     function clearOutput() {
-      [...outputGrid.children].forEach(cell => {
-        cell.className = "cell"; cell.textContent = "";
-      });
+      [...outputGrid.children].forEach(cell => { cell.className = "cell"; cell.textContent = ""; });
     }
 
     function setAllToGrade(grade) {
-      for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-          if (isStartOrEnd(x, y)) continue;   // 시작/도착 유지
-          if (board[y][x] === 1) continue;    // 장애물 유지
-          board[y][x] = grade;
-        }
-      }
+      for (let y = 0; y < size; y++)
+        for (let x = 0; x < size; x++)
+          if (!isStartOrEnd(x, y) && board[y][x] !== 1) board[y][x] = grade;
       render();
+      showToast(grade === 2 ? '전체 일반 발판 설정' : '전체 고급 발판 설정');
     }
 
-    // 배수 단계 → 실제 배수로 변환
     function getMultiplier() {
-      const stage = Number(document.getElementById('multiplierStage').value);
-      switch (stage) {
-        case 1: return 1;
-        case 2: return 2;
-        case 3: return 4;
-        case 4: return 8;
-        default: return 1;
-      }
+      return [1,2,4,8][Number(document.getElementById('multiplierStage').value)-1] ?? 1;
     }
 
-    // 등급별 기본 점수(고정) — 0(빈칸)은 '고급'처럼 2점
     function getGradeScores() {
-      const obstacleScore = allowObstacle ? 0 : -999; // 허용 OFF면 사실상 금지
-      return {
-        0: 2,        // 빈칸도 '고급' 점수로 계산
-        1: obstacleScore,
-        2: 1,        // 일반
-        3: 2,        // 고급
-        4: 4,        // 희귀
-        5: 10,       // 전설
-        6: 30        // 신화
-      };
+      return { 0:2, 1: allowObstacle?0:-999, 2:1, 3:2, 4:4, 5:10, 6:30 };
     }
 
     function findOptimalPath() {
-      if (!start || !end) { alert("시작점과 도착점을 지정하세요."); return; }
-
+      if (!start || !end) { showToast('⚠ 시작점과 도착점을 지정하세요'); return; }
       const gradeScores = getGradeScores();
       const visited = Array.from({ length: size }, () => Array(size).fill(false));
       let bestPath = [], bestScore = -Infinity;
 
       function dfs(x, y, path, score) {
-        if (x < 0 || y < 0 || x >= size || y >= size) return;
-        if (visited[y][x]) return;
-
-        // 장애물 허용 안 하면 통과 금지
-        if (!allowObstacle && board[y][x] === 1) return;
-
-        // 점수 계산: 시작/도착은 0점, 장애물은 0점(허용 OFF는 위에서 차단)
-        let addScore = 0;
-        if (!isStartOrEnd(x, y)) {
-          if (board[y][x] === 1) addScore = 0;
-          else addScore = gradeScores[board[y][x]] ?? 0;
-        }
-
-        path.push([x, y]);
-        visited[y][x] = true;
-        score += addScore;
-
-        if (x === end[0] && y === end[1]) {
-          if (score > bestScore) { bestScore = score; bestPath = [...path]; }
-        } else {
-          for (const [dx, dy] of [[1,0],[0,1],[-1,0],[0,-1]]) {
-            dfs(x + dx, y + dy, path, score);
-          }
-        }
-
-        path.pop();
-        visited[y][x] = false;
+        if (x<0||y<0||x>=size||y>=size||visited[y][x]) return;
+        if (!allowObstacle && board[y][x]===1) return;
+        let addScore = isStartOrEnd(x,y) ? 0 : (board[y][x]===1 ? 0 : gradeScores[board[y][x]] ?? 0);
+        path.push([x,y]); visited[y][x] = true; score += addScore;
+        if (x===end[0] && y===end[1]) { if (score>bestScore){bestScore=score;bestPath=[...path];} }
+        else for (const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]) dfs(x+dx,y+dy,path,score);
+        path.pop(); visited[y][x] = false;
       }
 
       dfs(start[0], start[1], [], 0);
       clearOutput();
 
       if (bestPath.length > 0) {
-        bestPath.forEach(([x, y], i) => {
-          const idx = y * size + x;
-          const cell = outputGrid.children[idx];
-          cell.classList.add("path");
-          cell.textContent = i + 1;
+        bestPath.forEach(([x,y], i) => {
+          const cell = outputGrid.children[y*size+x];
+          cell.classList.add("path"); cell.textContent = i+1;
         });
-        const multiplier = getMultiplier();
-        const finalScore = bestScore * multiplier;
-        document.getElementById("totalScore").textContent =
-          `총합 점수: ${finalScore} (배수 x${multiplier})`;
+        const m = getMultiplier();
+        const scoreEl = document.getElementById("totalScore");
+        scoreEl.textContent = `총합 점수: ${bestScore * m} (배수 x${m})`;
+        // 결과창으로 자동 스크롤
+        setTimeout(() => scoreEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+        showToast(`✓ 최적 경로 완성 — ${bestScore * m}점`);
       } else {
-        alert("경로를 찾을 수 없습니다.");
-        const multiplier = getMultiplier();
-        document.getElementById("totalScore").textContent =
-          `총합 점수: 0 (배수 x${multiplier})`;
+        showToast('⚠ 경로를 찾을 수 없습니다');
+        document.getElementById("totalScore").textContent = `총합 점수: 0 (배수 x${getMultiplier()})`;
       }
     }
 
     render();
   </script>
-
 </body>
 </html>

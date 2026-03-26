@@ -1,279 +1,288 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🎲 차원탐사 기대값 계산기</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
+    * { box-sizing: border-box; }
     body {
-      font-family: sans-serif;
-      padding: 30px;
-      background: #f7f7f7;
+      font-family: 'Noto Sans KR', sans-serif;
+      padding: 16px;
+      background: #f5f4f0;
+      margin: 0;
     }
     h1 {
       text-align: center;
-    }
-    label, select, input {
-      font-size: 16px;
+      font-size: 20px;
+      margin: 0 0 20px;
     }
     .container {
-      max-width: 800px;
+      max-width: 760px;
       margin: auto;
       background: white;
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     }
-    .result {
-      margin-top: 20px;
-      font-weight: bold;
-      background: #e0f7fa;
-      padding: 15px;
+
+    /* ── 입력 폼 ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .form-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-item label {
+      font-size: 13px;
+      color: #6b6960;
+      font-weight: 500;
+    }
+    .form-item select,
+    .form-item input {
+      padding: 9px 12px;
+      font-size: 14px;
+      border: 1px solid #d0cec4;
       border-radius: 8px;
+      background: #fff;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.15s;
+      width: 100%;
+    }
+    .form-item select:focus,
+    .form-item input:focus { border-color: #5DCAA5; }
+
+    /* ── 계산 버튼 ── */
+    .calc-btn {
+      width: 100%;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      background: #1D9E75;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+      margin-bottom: 16px;
+    }
+    .calc-btn:hover { background: #0F6E56; }
+    .calc-btn:active { background: #085041; }
+
+    /* ── 결과 ── */
+    .result {
+      background: #E1F5EE;
+      border: 1px solid #5DCAA5;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.9;
+      color: #0F6E56;
+      margin-bottom: 20px;
+    }
+    .result b { font-weight: 700; }
+
+    /* ── 차트 ── */
+    .chart-wrap {
+      margin-bottom: 24px;
+    }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b6960;
+      margin-bottom: 8px;
     }
     canvas {
-      margin-top: 30px;
+      width: 100% !important;
+      height: auto !important;
+      max-height: 260px;
+    }
+
+    /* ── 모바일 ── */
+    @media (max-width: 480px) {
+      .container { padding: 14px; }
+      .form-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 17px; }
+      canvas { max-height: 200px; }
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>🎯 차원탐사 기대값 계산기</h1>
-<header>
-  <a class="home-btn" href="https://shrmip316.gitgub.io/guide/" title="홈으로">🏠</a>
-</header>
+<div class="container">
+  <h1>🎲 차원탐사 기대값 계산기</h1>
 
-    
-    <label for="field">필드 선택:</label>
-    <select id="field">
-      <option value="81">알파 (81칸)</option>
-      <option value="81">베타 (81칸)</option>
-      <option value="121">감마 (121칸)</option>
-      <option value="169">델타 (169칸)</option>
-      <option value="225">제타 (225칸)</option>
-      <option value="289">세타 (289칸)</option>
-      <option value="361">람다 (361칸)</option>
-      <option value="441">오미크론 (441칸)</option>
-    </select>
-
-    <br><br>
-    <label for="remaining">현재 남은 칸 수:</label>
-    <input type="number" id="remaining" min="1" max="441" value="1">
-
-    <br><br>
-    <label for="cost">시도당 재화 비용:</label>
-    <input type="number" id="cost" value="1" min="1">
-
-    <br><br>
-    <button onclick="calculate()">계산하기</button>
-
-    <div class="result" id="result"></div>
-    <canvas id="chart"></canvas>
-    <canvas id="chart2"></canvas>
-    <canvas id="probChart"></canvas>
-    <canvas id="compareChart"></canvas>
+  <div class="form-grid">
+    <div class="form-item">
+      <label>필드 선택</label>
+      <select id="field">
+        <option value="81">알파 (81칸)</option>
+        <option value="81">베타 (81칸)</option>
+        <option value="121">감마 (121칸)</option>
+        <option value="169">델타 (169칸)</option>
+        <option value="225">제타 (225칸)</option>
+        <option value="289">세타 (289칸)</option>
+        <option value="361">람다 (361칸)</option>
+        <option value="441">오미크론 (441칸)</option>
+      </select>
+    </div>
+    <div class="form-item">
+      <label>현재 남은 칸 수</label>
+      <input type="number" id="remaining" min="1" max="441" value="1">
+    </div>
+    <div class="form-item">
+      <label>시도당 재화 비용</label>
+      <input type="number" id="cost" value="1" min="1">
+    </div>
   </div>
 
-  <script>
-    function harmonic(n) {
-      let h = 0;
-      for (let i = 1; i <= n; i++) {
-        h += 1 / i;
-      }
-      return h;
+  <button class="calc-btn" onclick="calculate()">계산하기</button>
+
+  <div class="result" id="result" style="display:none"></div>
+
+  <div class="chart-wrap">
+    <div class="chart-title">남은 칸 수별 전체 기대 시행 횟수</div>
+    <canvas id="chart"></canvas>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">남은 칸 수별 칸당 기대 시행 횟수</div>
+    <canvas id="chart2"></canvas>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">목표 확률 달성까지 필요 시행 횟수</div>
+    <canvas id="probChart"></canvas>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">기대 재화 vs 확정 강화 비용 비교</div>
+    <canvas id="compareChart"></canvas>
+  </div>
+</div>
+
+<script>
+  function harmonic(n) {
+    let h = 0;
+    for (let i = 1; i <= n; i++) h += 1 / i;
+    return h;
+  }
+
+  function cumulativeProbability(p, targetPercent) {
+    let cumulative = 0, k = 0;
+    while (cumulative < targetPercent) { k++; cumulative = 1 - Math.pow(1 - p, k); }
+    return k;
+  }
+
+  let chart, chart2, probChart, compareChart;
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { legend: { labels: { font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { font: { size: 11 }, maxTicksLimit: 10 }, title: { display: true, font: { size: 11 } } },
+      y: { ticks: { font: { size: 11 } }, title: { display: true, font: { size: 11 } } }
+    }
+  };
+
+  function calculate() {
+    const total = parseInt(document.getElementById("field").value);
+    const cost = parseInt(document.getElementById("cost").value);
+    const remaining = parseInt(document.getElementById("remaining").value);
+    const fixedCostPerSlot = 43.3 * cost;
+    const totalFixedCost = fixedCostPerSlot * remaining;
+
+    if (remaining <= 0 || remaining > total) {
+      document.getElementById("result").style.display = 'block';
+      document.getElementById("result").innerHTML = "⚠️ 올바른 남은 칸 수를 입력하세요.";
+      return;
     }
 
-    function cumulativeProbability(p, targetPercent) {
-      let cumulative = 0;
-      let k = 0;
-      while (cumulative < targetPercent) {
-        k++;
-        cumulative = 1 - Math.pow(1 - p, k);
-      }
-      return k;
+    const expectedTries = total * harmonic(remaining);
+    const expectedCost = expectedTries * cost;
+    const expectedPerSlot = total / remaining;
+    const strategy = (expectedCost > totalFixedCost)
+      ? "✅ <b>확정 강화</b>가 전체적으로 더 유리합니다."
+      : "🔁 <b>무작위 시도</b>가 전체적으로 더 유리합니다.";
+
+    const resultEl = document.getElementById("result");
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      🔢 <b>전체 기대 시행 횟수(상위62.3%):</b> ${expectedTries.toFixed(2)}회<br>
+      💎 <b>칸당 기대 시행 횟수(상위62.3%):</b> ${expectedPerSlot.toFixed(2)}회<br>
+      💰 <b>기대 재화 소모:</b> ${expectedCost.toFixed(2)}<br>
+      📍 <b>확정 강화 총 비용:</b> ${totalFixedCost.toFixed(2)}<br>
+      ${strategy}
+    `;
+
+    drawChart(total, cost);
+    drawSlotChart(total);
+    drawProbabilityChart(total, remaining);
+    drawCompareChart(total, cost);
+  }
+
+  function drawChart(total, cost) {
+    const x = [], y = [];
+    for (let r = 1; r <= total; r++) { x.push(r); y.push((total * harmonic(r)).toFixed(2)); }
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("chart"), {
+      type: 'line',
+      data: { labels: x, datasets: [{ label: "전체 기대 시행 횟수", data: y, borderColor: "#2196f3", tension: 0.1, fill: false, pointRadius: 0 }] },
+      options: { ...chartDefaults, scales: { x: { ...chartDefaults.scales.x, title: { display: true, text: "남은 칸 수", font: { size: 11 } } }, y: { ...chartDefaults.scales.y, title: { display: true, text: "기대 시행 횟수", font: { size: 11 } } } } }
+    });
+  }
+
+  function drawSlotChart(total) {
+    const x = [], y = [];
+    for (let r = 1; r <= total; r++) { x.push(r); y.push((total / r).toFixed(2)); }
+    if (chart2) chart2.destroy();
+    chart2 = new Chart(document.getElementById("chart2"), {
+      type: 'line',
+      data: { labels: x, datasets: [{ label: "칸당 기대 시행 횟수", data: y, borderColor: "#f44336", tension: 0.1, fill: false, pointRadius: 0 }] },
+      options: { ...chartDefaults, scales: { x: { ...chartDefaults.scales.x, title: { display: true, text: "남은 칸 수", font: { size: 11 } } }, y: { ...chartDefaults.scales.y, title: { display: true, text: "칸당 기대 시행 횟수", font: { size: 11 } } } } }
+    });
+  }
+
+  function drawProbabilityChart(total, remaining) {
+    const percents = [5,10,20,30,40,50,60,70,80,85,90,95,99];
+    const trials = percents.map(p => cumulativeProbability(remaining / total, p / 100));
+    if (probChart) probChart.destroy();
+    probChart = new Chart(document.getElementById("probChart"), {
+      type: 'line',
+      data: { labels: percents.map(p => p + "%"), datasets: [{ label: "필요 시행 횟수", data: trials, borderColor: "#4caf50", tension: 0.1, fill: false, pointRadius: 3 }] },
+      options: { ...chartDefaults, scales: { x: { ...chartDefaults.scales.x, title: { display: true, text: "획득 누적 확률", font: { size: 11 } } }, y: { ...chartDefaults.scales.y, title: { display: true, text: "필요 시행 횟수", font: { size: 11 } } } } }
+    });
+  }
+
+  function drawCompareChart(total, cost) {
+    const x = [], expectedCosts = [], fixedCosts = [];
+    let crossingPoint = null;
+    for (let r = 1; r <= total; r++) {
+      const expected = total * harmonic(r) * cost;
+      const fixed = r * 43.3 * cost;
+      x.push(r); expectedCosts.push(expected.toFixed(2)); fixedCosts.push(fixed.toFixed(2));
+      if (crossingPoint === null && expected <= fixed) crossingPoint = r;
     }
-
-    let chart, chart2, probChart, compareChart;
-
-    function calculate() {
-      const total = parseInt(document.getElementById("field").value);
-      const cost = parseInt(document.getElementById("cost").value);
-      const remaining = parseInt(document.getElementById("remaining").value);
-      const fixedCostPerSlot = 43.3 * cost;
-      const totalFixedCost = fixedCostPerSlot * remaining;
-
-      if (remaining <= 0 || remaining > total) {
-        document.getElementById("result").innerText = "⚠️ 올바른 남은 칸 수를 입력하세요.";
-        return;
-      }
-
-      const expectedTries = total * harmonic(remaining);
-      const expectedCost = expectedTries * cost;
-      const expectedPerSlot = total / remaining;
-
-      const strategy = (expectedCost > totalFixedCost)
-        ? "✅ <b>확정 강화</b>가 전체적으로 더 유리합니다."
-        : "🔁 <b>무작위 시도</b>가 전체적으로 더 유리합니다.";
-
-      document.getElementById("result").innerHTML = `
-        🔢 <b>전체 기대 시행 횟수(상위62.3%):</b> ${expectedTries.toFixed(2)}회<br>
-        💎 <b>칸당 기대 시행 횟수(상위62.3%):</b> ${expectedPerSlot.toFixed(2)}회<br>
-        💰 <b>기대 재화 소모(남은 칸 수 * 기대 시행 횟수):</b> ${expectedCost.toFixed(2)}<br>
-        📍 <b>확정 강화 총 비용:</b> ${totalFixedCost.toFixed(2)}<br>
-        ${strategy}
-      `;
-
-      drawChart(total, cost);
-      drawSlotChart(total);
-      drawProbabilityChart(total, remaining);
-      drawCompareChart(total, cost);
+    if (compareChart) compareChart.destroy();
+    const datasets = [
+      { label: "기대 재화 소모", data: expectedCosts, borderColor: "#3f51b5", tension: 0.1, fill: false, pointRadius: 0 },
+      { label: "확정 강화 비용", data: fixedCosts, borderColor: "#ff9800", tension: 0.1, fill: false, pointRadius: 0 }
+    ];
+    if (crossingPoint !== null) {
+      datasets.push({ label: "교차 지점", data: Array.from({length: total}, (_,i) => i+1===crossingPoint ? expectedCosts[crossingPoint-1] : null), borderColor: "red", pointBackgroundColor: "red", pointRadius: 6, type: 'line', fill: false, showLine: false });
     }
-
-    function drawChart(total, cost) {
-      const x = [], y = [];
-      for (let r = 1; r <= total; r++) {
-        x.push(r);
-        y.push((total * harmonic(r)).toFixed(2));
-      }
-      if (chart) chart.destroy();
-      chart = new Chart(document.getElementById("chart"), {
-        type: 'line',
-        data: {
-          labels: x,
-          datasets: [{
-            label: "남은 칸 수별 전체 기대 시행 횟수",
-            data: y,
-            borderColor: "#2196f3",
-            tension: 0.1,
-            fill: false
-          }]
-        },
-        options: {
-          scales: {
-            x: { title: { display: true, text: "남은 칸 수" } },
-            y: { title: { display: true, text: "기대 시행 횟수" } }
-          }
-        }
-      });
-    }
-
-    function drawSlotChart(total) {
-      const x = [], y = [];
-      for (let r = 1; r <= total; r++) {
-        x.push(r);
-        y.push((total / r).toFixed(2));
-      }
-      if (chart2) chart2.destroy();
-      chart2 = new Chart(document.getElementById("chart2"), {
-        type: 'line',
-        data: {
-          labels: x,
-          datasets: [{
-            label: "남은 칸 수별 칸당 기대 시행 횟수",
-            data: y,
-            borderColor: "#f44336",
-            tension: 0.1,
-            fill: false
-          }]
-        },
-        options: {
-          scales: {
-            x: { title: { display: true, text: "남은 칸 수" } },
-            y: { title: { display: true, text: "칸당 기대 시행 횟수" } }
-          }
-        }
-      });
-    }
-
-    function drawProbabilityChart(total, remaining) {
-      const percents = [5,10,20,30,40,50,60,70,80,85,90,95,96,97,98,99];
-      const trials = percents.map(percent => cumulativeProbability(remaining / total, percent / 100));
-      if (probChart) probChart.destroy();
-      probChart = new Chart(document.getElementById("probChart"), {
-        type: 'line',
-        data: {
-          labels: percents.map(p => p + "%"),
-          datasets: [{
-            label: "목표 누적 확률 달성까지 필요한 시행 횟수 (남은 칸 확률 기준)",
-            data: trials,
-            borderColor: "#4caf50",
-            tension: 0.1,
-            fill: false
-          }]
-        },
-        options: {
-          scales: {
-            x: { title: { display: true, text: "획득 누적 확률" } },
-            y: { title: { display: true, text: "필요 시행 횟수" } }
-          }
-        }
-      });
-    }
-
-    function drawCompareChart(total, cost) {
-      const x = [], expectedCosts = [], fixedCosts = [];
-      let crossingPoint = null;
-      for (let r = 1; r <= total; r++) {
-        const expected = total * harmonic(r) * cost;
-        const fixed = r * 43.3 * cost;
-        x.push(r);
-        expectedCosts.push(expected.toFixed(2));
-        fixedCosts.push(fixed.toFixed(2));
-        if (crossingPoint === null && expected <= fixed) {
-          crossingPoint = r;
-        }
-      }
-      if (compareChart) compareChart.destroy();
-      const ctx = document.getElementById("compareChart").getContext("2d");
-      const datasets = [
-        {
-          label: "기대 재화 누적 소모",
-          data: expectedCosts,
-          borderColor: "#3f51b5",
-          tension: 0.1,
-          fill: false
-        },
-        {
-          label: "확정 강화 누적 비용",
-          data: fixedCosts,
-          borderColor: "#ff9800",
-          tension: 0.1,
-          fill: false
-        }
-      ];
-      if (crossingPoint !== null) {
-        datasets.push({
-          label: "교차 지점",
-          data: Array.from({length: total}, (_, i) => i+1 === crossingPoint ? expectedCosts[crossingPoint-1] : null),
-          borderColor: "red",
-          pointBackgroundColor: "red",
-          pointBorderColor: "red",
-          pointRadius: 6,
-          type: 'line',
-          fill: false,
-          showLine: false
-        });
-      }
-      compareChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: x,
-          datasets: datasets
-        },
-        options: {
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { mode: 'index' }
-          },
-          scales: {
-            x: { title: { display: true, text: "남은 칸 수" } },
-            y: { title: { display: true, text: "재화 소모량" } }
-          }
-        }
-      });
-    }
-  </script>
-
+    compareChart = new Chart(document.getElementById("compareChart"), {
+      type: 'line',
+      data: { labels: x, datasets },
+      options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { position: 'top', labels: { font: { size: 11 } } }, tooltip: { mode: 'index' } }, scales: { x: { ...chartDefaults.scales.x, title: { display: true, text: "남은 칸 수", font: { size: 11 } } }, y: { ...chartDefaults.scales.y, title: { display: true, text: "재화 소모량", font: { size: 11 } } } } }
+    });
+  }
+</script>
 </body>
 </html>
