@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>벽돌주식회사 결제 필터 & 합계 계산</title>
+  <style>
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+      color: #333;
+    }
+    h2 { margin-bottom: 15px; }
+    p { margin-bottom: 10px; text-align: center; line-height: 1.4; }
+    input[type="file"] { margin: 10px 0; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      margin: 5px;
+      transition: background 0.2s;
+    }
+    button:hover { background: #0056b3; }
+    .result {
+      margin-top: 25px;
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+    }
+    /* 🌐 아이콘 버튼 스타일 */
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 28px;
+      color: #007bff;
+      transition: color 0.25s, transform 0.2s;
+    }
+    .icon-btn:hover {
+      color: #0056b3;
+      transform: scale(1.2);
+    }
+    .icon-btn:disabled {
+      color: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>💰 벽돌주식회사 결제 내역 필터 & 합계 계산</h2>
+  <p>‘설명’에 <strong>‘벽돌주식회사’</strong>가 포함되고,<br>‘상태’가 <strong>‘완료’</strong>인 행만 필터링하여 합계를 계산합니다.
+  <br>csv파일은 🌐 버튼 클릭 후 로그인하여 테이크아웃목록에서 google pay만 선택하여 내보내기 하시면 됩니다.
+<br> ※ 해당 링크는 편의를 위한 링크이며 이 사이트는 개인정보를 수집하지 않습니다. ※</p>
+
+  <input type="file" id="fileInput" accept=".csv">
+  <button onclick="processCSV()">합계 계산</button>
+
+  <div class="result" id="output"></div>
+
+  <!-- 🌐 CSV 다운로드 아이콘 버튼 -->
+  <button id="downloadIcon" class="icon-btn" title="결제 내역 가져오기"
+  onclick="openLink()" >
+🌐
+</button>
+
+<script>
+function openLink() {
+const url = 'https://takeout.google.com/settings/takeout';
+window.open(url, '_blank');
+}
+</script>
+
+  <script>
+    let filteredRows = [];
+
+    // 금액 추출 함수
+    function extractNumber(str) {
+      if (!str) return 0;
+      const clean = str.replace(/[^\d.-]/g, "");
+      const num = parseFloat(clean);
+      return isNaN(num) ? 0 : num;
+    }
+
+    // CSV 한 줄 파싱 함수 (따옴표 대응)
+    function parseCSVLine(line) {
+      const result = [];
+      let current = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    // CSV 처리 함수
+    function processCSV() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) {
+        alert("CSV 파일을 선택하세요!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result.replace(/\r/g, '');
+        const rows = text.split('\n').filter(r => r.trim() !== "");
+        let total = 0;
+        filteredRows = [];
+
+        const header = parseCSVLine(rows[0]);
+        const descIndex = header.findIndex(c => c.includes("설명"));
+        const stateIndex = header.findIndex(c => c.includes("상태"));
+        const amountIndex = header.findIndex(c => c.includes("금액"));
+        filteredRows.push(rows[0]); // 헤더 추가
+
+        for (let i = 1; i < rows.length; i++) {
+          const cols = parseCSVLine(rows[i]);
+          const desc = cols[descIndex] || "";
+          const state = cols[stateIndex] || "";
+          const amount = cols[amountIndex] || "";
+
+          if (desc.includes("벽돌 주식회사") && state.includes("완료")) {
+            filteredRows.push(rows[i]);
+            total += extractNumber(amount);
+          }
+        }
+
+        document.getElementById('output').innerHTML =
+          total > 0
+            ? `🧱 '벽돌주식회사' + '완료' 조건 일치 거래 ${filteredRows.length - 1}건<br>총합: <strong>${total.toLocaleString()}원</strong>`
+            : "⚠️ '벽돌주식회사' + '완료' 조건에 해당하는 내역이 없습니다.";
+
+        // CSV 다운로드 아이콘 활성화
+        const iconBtn = document.getElementById('downloadIcon');
+        iconBtn.disabled = filteredRows.length <= 1;
+      };
+
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    // CSV 다운로드 함수
+    function downloadFiltered() {
+      if (filteredRows.length <= 1) {
+        alert("다운로드할 데이터가 없습니다!");
+        return;
+      }
+
+      const csvContent = filteredRows.join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "filtered_벽돌주식회사_완료.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+
+</body>
+</html>
