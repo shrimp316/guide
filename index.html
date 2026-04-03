@@ -38,8 +38,6 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
-const ADMIN = 'shrimpsushi12@gmail.com';
-
 let currentUser = null;
 let isAdmin = false;
 
@@ -50,6 +48,14 @@ async function hashPw(pw) {
 }
 
 // ── 인증 상태 ──
+async function checkAdmin(user) {
+  if (!user) return false;
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    return snap.exists() && snap.data()?.role === 'admin';
+  } catch { return false; }
+}
+
 onAuthStateChanged(auth, async (user) => {
   // 리다이렉트 로그인 결과 처리
   if (!user) {
@@ -57,7 +63,7 @@ onAuthStateChanged(auth, async (user) => {
       const result = await getRedirectResult(auth);
       if (result?.user) {
         currentUser = result.user;
-        isAdmin = currentUser.email === ADMIN;
+        isAdmin = await checkAdmin(currentUser);
         updateAuthUI();
         showToast('로그인 완료!');
         if (window._currentGuide) loadBoard(window._currentGuide);
@@ -70,7 +76,7 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
   currentUser = user;
-  isAdmin = user?.email === ADMIN;
+  isAdmin = await checkAdmin(user);
   updateAuthUI();
   if (window._currentGuide) loadBoard(window._currentGuide);
 });
@@ -141,7 +147,7 @@ function renderBoard(posts, category) {
             ${isSuggest ? `<span class="${done ? 'badge-done' : 'badge-pending'}">${done ? '✓ 완료' : '대기중'}</span>` : ''}
           </div>
           <div class="post-card-meta">
-            <span>${escHtml(post.authorName)}</span>
+            <span>${escHtml(post.authorName)}${post.isAdmin ? ' <span class="admin-badge">✦ 운영자</span>' : ''}</span>
             <span>${date}</span>
           </div>
         </div>`;
@@ -160,7 +166,8 @@ window.openPost = async (postId) => {
   const date = post.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '';
 
   document.getElementById('postModalTitle').textContent  = post.title;
-  document.getElementById('postModalMeta').textContent   = `${post.authorName} · ${date}`;
+  const adminBadge = post.isAdmin ? ' <span class="admin-badge">✦ 운영자</span>' : '';
+  document.getElementById('postModalMeta').innerHTML = `${escHtml(post.authorName)}${adminBadge} · ${date}`;
   document.getElementById('postModalBody').innerHTML     = post.body;
   const isSuggest = post.category === 'board-suggest';
   const doneBtn = (isSuggest && isAdmin)
@@ -281,6 +288,7 @@ window.submitPost = async () => {
     category, title, body,
     authorName:  nickname,
     authorEmail: currentUser?.email || null,
+    isAdmin:     isAdmin,
     updatedAt:   serverTimestamp(),
   };
 
@@ -525,6 +533,17 @@ a{text-decoration:none;color:inherit}
 .btn-cancel{padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;color:var(--text2);cursor:pointer}
 .btn-submit{flex:1;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:inherit;font-weight:500;cursor:pointer}
 .btn-submit:hover{background:#0F6E56}
+
+/* Admin 뱃지 */
+.admin-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; color: #BA7517; font-weight: 700;
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+@keyframes sparkle {
+  0%,100% { opacity: 1; text-shadow: 0 0 4px #f59e0b; }
+  50% { opacity: 0.7; text-shadow: 0 0 10px #f59e0b, 0 0 20px #fbbf24; }
+}
 
 /* 건의 게시판 완료 배지 */
 .badge-done{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:500;border:1px solid #5DCAA5}
