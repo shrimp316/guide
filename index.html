@@ -6,6 +6,8 @@
 <title>벽돌주식회사 통합사이트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -143,14 +145,19 @@ window.openWriteModal = (category) => {
   document.getElementById('writeCategory').value  = category;
   document.getElementById('writeNickname').value  = currentUser?.displayName || '';
   document.getElementById('writePassword').value  = '';
-  document.getElementById('writeTitleInput').value= '';
-  document.getElementById('writeBody').value      = '';
+  document.getElementById('writeTitleInput').value = '';
   document.getElementById('writePwRow').style.display = currentUser ? 'none' : '';
   document.getElementById('writeNicknameRow').style.display = currentUser ? 'none' : '';
   document.getElementById('writeModal').classList.add('show');
+  setTimeout(() => {
+    if (window._quill) window._quill.setContents([]);
+    else initQuill();
+  }, 50);
 };
 
-window.closeWriteModal = () => document.getElementById('writeModal').classList.remove('show');
+window.closeWriteModal = () => {
+  document.getElementById('writeModal').classList.remove('show');
+};
 
 window.openEditModal = async (postId) => {
   const snap = await getDoc(doc(db, 'posts', postId));
@@ -161,12 +168,15 @@ window.openEditModal = async (postId) => {
   document.getElementById('writeCategory').value  = post.category;
   document.getElementById('writeNickname').value  = post.authorName;
   document.getElementById('writePassword').value  = '';
-  document.getElementById('writeTitleInput').value= post.title;
-  document.getElementById('writeBody').value      = post.body;
+  document.getElementById('writeTitleInput').value = post.title;
   document.getElementById('writePwRow').style.display = (!currentUser || (!isAdmin && currentUser.email !== post.authorEmail)) ? '' : 'none';
   document.getElementById('writeNicknameRow').style.display = 'none';
   document.getElementById('writeModal').classList.add('show');
   document.getElementById('postModal').classList.remove('show');
+  setTimeout(() => {
+    if (!window._quill) initQuill();
+    window._quill.root.innerHTML = post.body || '';
+  }, 50);
 };
 
 // ── 글 저장 ──
@@ -174,7 +184,7 @@ window.submitPost = async () => {
   const postId   = document.getElementById('writePostId').value;
   const category = document.getElementById('writeCategory').value;
   const title    = document.getElementById('writeTitleInput').value.trim();
-  const body     = document.getElementById('writeBody').value.trim();
+  const body     = window._quill ? window._quill.root.innerHTML.trim() : '';
   const nickname = currentUser
     ? (currentUser.displayName || currentUser.email)
     : document.getElementById('writeNickname').value.trim();
@@ -247,13 +257,15 @@ window.uploadImage = async () => {
   const r = ref(storage, `guide-images/${Date.now()}_${file.name}`);
   await uploadBytes(r, file);
   const url = await getDownloadURL(r);
-  const tag = `\n<div class="img-wrap"><img src="${url}" alt="이미지"><div class="img-caption">설명 입력</div></div>\n`;
-  const body = document.getElementById('writeBody');
-  body.value += tag;
+  if (window._quill) {
+    const range = window._quill.getSelection(true);
+    window._quill.insertEmbed(range ? range.index : window._quill.getLength(), 'image', url);
+  }
   showToast('이미지 삽입 완료!');
 };
 
 window._firebase = { auth, db, storage };
+window._firebaseStorage = storage;
 </script>
 
 <style>
@@ -390,6 +402,12 @@ a{text-decoration:none;color:inherit}
 .field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;color:var(--text);outline:none;transition:border .15s;background:var(--surface)}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal-border)}
 .field textarea{min-height:260px;resize:vertical;font-family:'DM Mono',monospace;line-height:1.6}
+/* Quill 에디터 */
+.ql-toolbar{border:1px solid var(--border2)!important;border-radius:var(--radius-sm) var(--radius-sm) 0 0!important;background:var(--surface2)!important;font-family:'Noto Sans KR',sans-serif!important}
+.ql-container{border:1px solid var(--border2)!important;border-top:none!important;border-radius:0 0 var(--radius-sm) var(--radius-sm)!important;font-family:'Noto Sans KR',sans-serif!important;font-size:14px!important;min-height:260px}
+.ql-editor{min-height:240px;line-height:1.8}
+.ql-editor p{margin-bottom:8px}
+.ql-editor.ql-blank::before{color:var(--text3)!important;font-style:normal!important}
 .field-hint{font-size:11px;color:var(--text3);margin-top:4px}
 .field-row{display:flex;gap:8px}
 .field-row .field{flex:1}
@@ -602,9 +620,9 @@ a{text-decoration:none;color:inherit}
         <div class="field-hint">업로드하면 본문에 자동 삽입돼요.</div>
       </div>
       <div class="field">
-        <label>본문 <span style="color:var(--text3);font-weight:400">(HTML 작성)</span></label>
-        <textarea id="writeBody" placeholder="<h2>제목</h2>&#10;<p>내용을 입력하세요</p>&#10;<div class=&quot;tip&quot;>💡 팁 박스</div>&#10;<div class=&quot;warn&quot;>⚠ 주의 박스</div>"></textarea>
-        <div class="field-hint">h2, h3, p, ul, table, .tip .warn .info-box .img-wrap 클래스 사용 가능</div>
+        <label>본문</label>
+        <div id="quillEditor"></div>
+        <div class="field-hint">툴바로 서식 적용 · 이미지는 위 업로드 버튼 사용</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -615,6 +633,52 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<script>
+function initQuill() {
+  if (window._quill) return;
+  window._quill = new Quill('#quillEditor', {
+    theme: 'snow',
+    placeholder: '공략 내용을 입력하세요...',
+    modules: {
+      toolbar: [
+        [{ header: [2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ color: [] }, { background: [] }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        ['clean']
+      ]
+    }
+  });
+  // 이미지 핸들러 — Storage 업로드
+  window._quill.getModule('toolbar').addHandler('image', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.click();
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      showToast('업로드 중...');
+      try {
+        const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
+        const storage = window._firebase?.storage;
+        if (!storage) { showToast('스토리지 연결 오류'); return; }
+        const r = ref(storage, \`guide-images/\${Date.now()}_\${file.name}\`);
+        await uploadBytes(r, file);
+        const url = await getDownloadURL(r);
+        const range = window._quill.getSelection(true);
+        window._quill.insertEmbed(range ? range.index : window._quill.getLength(), 'image', url);
+        showToast('이미지 삽입 완료!');
+      } catch(e) {
+        showToast('업로드 실패: ' + e.message);
+      }
+    };
+  });
+}
+</script>
 
 <script>
 function escHtml(s) {
