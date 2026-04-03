@@ -11,7 +11,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
          getDocs, query, where, orderBy, serverTimestamp }
@@ -43,6 +43,9 @@ async function hashPw(pw) {
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+// ── 리다이렉트 결과 처리 ──
+getRedirectResult(auth).catch(() => {});
+
 // ── 인증 상태 ──
 onAuthStateChanged(auth, user => {
   currentUser = user;
@@ -62,7 +65,10 @@ function updateAuthUI() {
     userInfo.style.display = 'block';
   } else {
     btn.textContent = 'Google 로그인';
-    btn.onclick = () => signInWithPopup(auth, provider).catch(e => showToast('로그인 실패: ' + e.message));
+    btn.onclick = () => signInWithPopup(auth, provider).catch(() => {
+      // 팝업 차단 시 리다이렉트 방식으로 폴백
+      signInWithRedirect(auth, provider);
+    });
     userInfo.style.display = 'none';
   }
 }
@@ -639,7 +645,7 @@ a{text-decoration:none;color:inherit}
         <button class="back-btn" onclick="navigate('home')">← 홈으로</button>
         <span class="iframe-title" id="iframeTitle"></span>
       </div>
-      <iframe class="content-iframe" id="contentIframe" src="" title="콘텐츠"></iframe>
+      <iframe class="content-iframe" id="contentIframe" src="" title="콘텐츠" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
 
   </main>
@@ -783,7 +789,7 @@ function showPage(page) {
     const info = IFRAME_PAGES[page];
     document.getElementById('iframeTitle').textContent = info.title;
     const iframe = document.getElementById('contentIframe');
-    if (!iframe.src.endsWith(info.src)) iframe.src = info.src;
+    if (!iframe.src.includes(info.src)) iframe.src = info.src;
     document.getElementById('view-iframe').classList.add('active');
   } else if (window.GUIDES[page]) {
     document.getElementById('view-guide').classList.add('active');
