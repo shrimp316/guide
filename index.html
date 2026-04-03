@@ -494,6 +494,11 @@ a{text-decoration:none;color:inherit}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1917;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:500;z-index:999;transition:transform .25s ease,opacity .25s ease;opacity:0;white-space:nowrap;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
+/* 인앱 브라우저 배너 */
+.inapp-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1917;color:#fff;padding:14px 16px;z-index:1000;text-align:center;font-size:13px;line-height:1.6}
+.inapp-banner.show{display:block}
+.inapp-banner-btn{display:inline-block;margin-top:8px;padding:8px 20px;background:var(--teal);color:#fff;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit}
+
 /* 모바일 */
 .mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);z-index:200;align-items:center;padding:0 16px;gap:12px}
 .hamburger{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text);padding:4px}
@@ -708,6 +713,12 @@ a{text-decoration:none;color:inherit}
   </div>
 </div>
 
+<div class="inapp-banner" id="inappBanner">
+  카카오톡 인앱 브라우저에서는 Google 로그인이 지원되지 않아요.<br>
+  로그인 없이도 글 작성은 가능해요 😊<br>
+  <button class="inapp-banner-btn" onclick="openExternalBrowser()">외부 브라우저로 열기</button>
+  <button class="inapp-banner-btn" style="background:var(--surface2);color:var(--text2);margin-left:8px" onclick="document.getElementById('inappBanner').classList.remove('show')">닫기</button>
+</div>
 <div class="toast" id="toast"></div>
 
 
