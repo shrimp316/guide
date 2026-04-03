@@ -1,0 +1,25 @@
+{
+  "name": "벽돌주식회사 통합사이트",
+  "short_name": "벽돌가이드",
+  "description": "벽돌주식회사 공략 및 계산기 통합 사이트",
+  "start_url": "/guide/",
+  "scope": "/guide/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f4f0",
+  "theme_color": "#1D9E75",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
