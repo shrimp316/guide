@@ -17,7 +17,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
          getDocs, query, where, orderBy, serverTimestamp }
@@ -71,7 +71,14 @@ function updateAuthUI() {
     userInfo.style.display = 'block';
   } else {
     btn.textContent = 'Google 로그인';
-    btn.onclick = () => signInWithRedirect(auth, provider);
+    btn.onclick = () => (() => {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        signInWithRedirect(auth, provider);
+      } else {
+        signInWithPopup(auth, provider).catch(e => showToast('로그인 실패: ' + e.message));
+      }
+    })();
     userInfo.style.display = 'none';
   }
 }
@@ -147,12 +154,16 @@ window.openPost = async (postId) => {
         ${post.done ? '↩ 완료 취소' : '✓ 완료 표시'}
        </button>`
     : '';
+  const isAnon = !post.authorEmail;
   document.getElementById('postModalActions').innerHTML = canEdit
     ? `${doneBtn}
        <button class="post-action-btn" onclick="window.openEditModal('${post.id}')">수정</button>
        <button class="post-action-btn danger" onclick="window.deletePost('${post.id}')">삭제</button>`
-    : `${doneBtn}
-       <button class="post-action-btn" onclick="window.openDeleteConfirm('${post.id}')">삭제 요청</button>`;
+    : isAnon
+    ? `${doneBtn}
+       <button class="post-action-btn" onclick="window.openEditConfirm('${post.id}')">수정</button>
+       <button class="post-action-btn danger" onclick="window.openDeleteConfirm('${post.id}')">삭제</button>`
+    : `${doneBtn}`;
 
   document.getElementById('postModal').classList.add('show');
 };
@@ -313,6 +324,21 @@ window.openDeleteConfirm = (postId) => {
     showToast('삭제 완료');
     closePostModal();
     if (window._currentGuide) loadBoard(window._currentGuide);
+  })();
+};
+
+// 비로그인 수정 확인
+window.openEditConfirm = (postId) => {
+  const pw = prompt('비밀번호를 입력하세요:');
+  if (!pw) return;
+  (async () => {
+    const snap = await getDoc(doc(db, 'posts', postId));
+    if (!snap.exists()) return;
+    const hash = await hashPw(pw);
+    if (hash !== snap.data().passwordHash) { showToast('비밀번호가 틀렸어요.'); return; }
+    // 비밀번호 확인 후 수정 모달 열기
+    closePostModal();
+    await window.openEditModal(postId);
   })();
 };
 
