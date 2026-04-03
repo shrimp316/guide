@@ -92,20 +92,24 @@ window.loadBoard = async (category) => {
 
 function renderBoard(posts, category) {
   const list = document.getElementById('boardList');
+  const isSuggest = category === 'board-suggest';
 
-  // 글쓰기 버튼
   let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-    <button class="write-btn" onclick="window.openWriteModal('${category}')">✏ 글 작성</button>
+    <button class="write-btn" onclick="window.openWriteModal('${category}')">✏ ${isSuggest ? '건의하기' : '글 작성'}</button>
   </div>`;
 
   if (posts.length === 0) {
-    html += '<div class="empty-board">아직 작성된 글이 없어요. 첫 번째 공략을 작성해보세요!</div>';
+    html += `<div class="empty-board">${isSuggest ? '아직 건의 글이 없어요. 자유롭게 남겨주세요!' : '아직 작성된 글이 없어요. 첫 번째 공략을 작성해보세요!'}</div>`;
   } else {
     posts.forEach(post => {
       const date = post.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '';
+      const done = post.done === true;
       html += `
-        <div class="post-card" onclick="window.openPost('${post.id}')">
-          <div class="post-card-title">${escHtml(post.title)}</div>
+        <div class="post-card${done ? ' done' : ''}" onclick="window.openPost('${post.id}')">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <div class="post-card-title" style="margin-bottom:0;flex:1">${escHtml(post.title)}</div>
+            ${isSuggest ? `<span class="${done ? 'badge-done' : 'badge-pending'}">${done ? '✓ 완료' : '대기중'}</span>` : ''}
+          </div>
           <div class="post-card-meta">
             <span>${escHtml(post.authorName)}</span>
             <span>${date}</span>
@@ -128,10 +132,18 @@ window.openPost = async (postId) => {
   document.getElementById('postModalTitle').textContent  = post.title;
   document.getElementById('postModalMeta').textContent   = `${post.authorName} · ${date}`;
   document.getElementById('postModalBody').innerHTML     = post.body;
-  document.getElementById('postModalActions').innerHTML  = canEdit
-    ? `<button class="post-action-btn" onclick="window.openEditModal('${post.id}')">수정</button>
+  const isSuggest = post.category === 'board-suggest';
+  const doneBtn = (isSuggest && isAdmin)
+    ? `<button class="admin-done-btn${post.done ? ' undo' : ''}" onclick="window.toggleDone('${post.id}', ${!post.done})">
+        ${post.done ? '↩ 완료 취소' : '✓ 완료 표시'}
+       </button>`
+    : '';
+  document.getElementById('postModalActions').innerHTML = canEdit
+    ? `${doneBtn}
+       <button class="post-action-btn" onclick="window.openEditModal('${post.id}')">수정</button>
        <button class="post-action-btn danger" onclick="window.deletePost('${post.id}')">삭제</button>`
-    : `<button class="post-action-btn" onclick="window.openDeleteConfirm('${post.id}')">삭제 요청</button>`;
+    : `${doneBtn}
+       <button class="post-action-btn" onclick="window.openDeleteConfirm('${post.id}')">삭제 요청</button>`;
 
   document.getElementById('postModal').classList.add('show');
 };
@@ -261,6 +273,16 @@ window.submitPost = async () => {
 };
 
 // ── 글 삭제 ──
+window.toggleDone = async (postId, done) => {
+  const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+  const db = window._firebase?.db;
+  if (!db) return;
+  await updateDoc(doc(db, 'posts', postId), { done });
+  showToast(done ? '✓ 완료 표시했어요!' : '완료 취소했어요.');
+  closePostModal();
+  if (window._currentGuide) loadBoard(window._currentGuide);
+};
+
 window.deletePost = async (postId) => {
   if (!confirm('정말 삭제할까요?')) return;
   await deleteDoc(doc(db, 'posts', postId));
@@ -455,6 +477,16 @@ a{text-decoration:none;color:inherit}
 .btn-submit{flex:1;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:inherit;font-weight:500;cursor:pointer}
 .btn-submit:hover{background:#0F6E56}
 
+/* 건의 게시판 완료 배지 */
+.badge-done{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:500;border:1px solid #5DCAA5}
+.badge-pending{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:var(--amber-light);color:#854F0B;font-size:11px;font-weight:500;border:1px solid #BA7517}
+.post-card.done{opacity:.7}
+.post-card.done .post-card-title{text-decoration:line-through;color:var(--text3)}
+.admin-done-btn{padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--teal-border);background:var(--teal-light);color:#0F6E56;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s}
+.admin-done-btn:hover{background:var(--teal);color:#fff}
+.admin-done-btn.undo{border-color:var(--border2);background:var(--surface2);color:var(--text2)}
+.admin-done-btn.undo:hover{border-color:#E64A19;color:#E64A19}
+
 /* 토스트 */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1917;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:500;z-index:999;transition:transform .25s ease,opacity .25s ease;opacity:0;white-space:nowrap;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
@@ -535,6 +567,11 @@ a{text-decoration:none;color:inherit}
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
+        <div class="nav-group-label">커뮤니티</div>
+        <div class="nav-item" data-page="board-suggest" onclick="navigate('board-suggest')"><span class="nav-icon">📬</span> 건의게시판</div>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-group">
         <div class="nav-item" onclick="window.open('https://www.seasoninggames.com/ko/blog','_blank')">
           <span class="nav-icon">🌐</span> 공식 홈페이지 <span class="nav-ext">↗</span>
         </div>
@@ -582,6 +619,10 @@ a{text-decoration:none;color:inherit}
       <div class="section" id="section-tool">
         <div class="section-header"><div class="section-title">편의기능</div><div class="section-line"></div></div>
         <div class="card-grid" id="grid-tool"></div>
+      </div>
+      <div class="section" id="section-community">
+        <div class="section-header"><div class="section-title">커뮤니티</div><div class="section-line"></div></div>
+        <div class="card-grid" id="grid-community"></div>
       </div>
     </div>
 
@@ -697,6 +738,7 @@ const CARDS = [
   { id:17, name:"진리의 길",              desc:"최적경로 찾기",             icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     page:"tool-path" },
   { id:18, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과",  icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     page:"tool-tree" },
   { id:19, name:"과금내역 확인",          desc:"과금내역 확인 (구글)",      icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     page:null, url:"https://docs.google.com/", external:true },
+  { id:20, name:"건의게시판",             desc:"게시판 추가 건의 / 공략 요청", icon:"📬", iconClass:"ic-purple", tags:["community"], section:"community", page:"board-suggest" },
 ];
 
 const IFRAME_PAGES = {
@@ -719,6 +761,7 @@ window.GUIDES = {
   'guide-dive':            { title:'다이브',       desc:'다이브 공략 게시판' },
   'guide-beast-guide':     { title:'신수 공략',    desc:'신수 공략 게시판' },
   'guide-dimension-guide': { title:'차원탐사 공략',desc:'차원탐사 공략 게시판' },
+  'board-suggest':         { title:'건의게시판',   desc:'게시판 추가 건의, 공략 요청 등 자유롭게 남겨주세요.' },
 };
 
 // 라우터
@@ -773,7 +816,7 @@ function renderCard(card) {
 }
 
 function initCards() {
-  const grids = { pin:'grid-pin', guide:'grid-guide', strategy:'grid-strategy', cal:'grid-cal', tool:'grid-tool' };
+  const grids = { pin:'grid-pin', guide:'grid-guide', strategy:'grid-strategy', cal:'grid-cal', tool:'grid-tool', community:'grid-community' };
   CARDS.forEach(card => {
     const el = document.getElementById(grids[card.section]);
     if (el) el.appendChild(renderCard(card));
@@ -784,7 +827,7 @@ function initCards() {
 let activeTag = 'all', searchQuery = '';
 function applyFilter() {
   let total = 0;
-  const secCount = { pin:0, guide:0, strategy:0, cal:0, tool:0 };
+  const secCount = { pin:0, guide:0, strategy:0, cal:0, tool:0, community:0 };
   document.querySelectorAll('.card').forEach(card => {
     const tags = card.dataset.tags.split(',');
     const name = card.querySelector('.card-name').textContent;
