@@ -149,10 +149,28 @@ window.openWriteModal = (category) => {
   document.getElementById('writePwRow').style.display = currentUser ? 'none' : '';
   document.getElementById('writeNicknameRow').style.display = currentUser ? 'none' : '';
   document.getElementById('writeModal').classList.add('show');
-  setTimeout(() => {
-    if (window._quill) window._quill.setContents([]);
-    else initQuill();
-  }, 50);
+  // Quill 초기화 — 모달이 DOM에 보인 뒤 실행
+  requestAnimationFrame(() => {
+    if (!window._quill) {
+      window._quill = new Quill('#quillEditor', {
+        theme: 'snow',
+        placeholder: '공략 내용을 입력하세요...',
+        modules: {
+          toolbar: [
+            [{ header: [2, 3, false] }],
+            ['bold', 'italic', 'underline'],
+            [{ color: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            ['blockquote'],
+            ['link'],
+            ['clean']
+          ]
+        }
+      });
+    }
+    window._quill.setContents([]);
+    window._quill.enable(true);
+  });
 };
 
 window.closeWriteModal = () => {
@@ -173,10 +191,28 @@ window.openEditModal = async (postId) => {
   document.getElementById('writeNicknameRow').style.display = 'none';
   document.getElementById('writeModal').classList.add('show');
   document.getElementById('postModal').classList.remove('show');
-  setTimeout(() => {
-    if (!window._quill) initQuill();
-    window._quill.root.innerHTML = post.body || '';
-  }, 50);
+  const bodyContent = post.body || '';
+  requestAnimationFrame(() => {
+    if (!window._quill) {
+      window._quill = new Quill('#quillEditor', {
+        theme: 'snow',
+        placeholder: '공략 내용을 입력하세요...',
+        modules: {
+          toolbar: [
+            [{ header: [2, 3, false] }],
+            ['bold', 'italic', 'underline'],
+            [{ color: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            ['blockquote'],
+            ['link'],
+            ['clean']
+          ]
+        }
+      });
+    }
+    window._quill.root.innerHTML = bodyContent;
+    window._quill.enable(true);
+  });
 };
 
 // ── 글 저장 ──
@@ -634,51 +670,7 @@ a{text-decoration:none;color:inherit}
 
 <div class="toast" id="toast"></div>
 
-<script>
-function initQuill() {
-  if (window._quill) return;
-  window._quill = new Quill('#quillEditor', {
-    theme: 'snow',
-    placeholder: '공략 내용을 입력하세요...',
-    modules: {
-      toolbar: [
-        [{ header: [2, 3, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ color: [] }, { background: [] }],
-        [{ list: 'ordered' }, { list: 'bullet' }],
-        ['blockquote', 'code-block'],
-        ['link', 'image'],
-        ['clean']
-      ]
-    }
-  });
-  // 이미지 핸들러 — Storage 업로드
-  window._quill.getModule('toolbar').addHandler('image', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.click();
-    input.onchange = async () => {
-      const file = input.files[0];
-      if (!file) return;
-      showToast('업로드 중...');
-      try {
-        const { ref, uploadBytes, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
-        const storage = window._firebase?.storage;
-        if (!storage) { showToast('스토리지 연결 오류'); return; }
-        const r = ref(storage, \`guide-images/\${Date.now()}_\${file.name}\`);
-        await uploadBytes(r, file);
-        const url = await getDownloadURL(r);
-        const range = window._quill.getSelection(true);
-        window._quill.insertEmbed(range ? range.index : window._quill.getLength(), 'image', url);
-        showToast('이미지 삽입 완료!');
-      } catch(e) {
-        showToast('업로드 실패: ' + e.message);
-      }
-    };
-  });
-}
-</script>
+
 
 <script>
 function escHtml(s) {
@@ -876,6 +868,8 @@ loadBanner();
 const initPage = location.hash.replace('#','') || 'home';
 history.replaceState({ page: initPage }, '', location.href);
 showPage(initPage);
+// Quill은 페이지 로드 시 바로 초기화 (모달 열리기 전에)
+initQuill();
 </script>
 </body>
 </html>
