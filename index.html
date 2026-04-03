@@ -6,21 +6,310 @@
 <title>벽돌주식회사 통합사이트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp, query, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBSxJKvyrMl18t2sv47o6HjlWiY7IsSoRw",
+  authDomain: "brick-guide.firebaseapp.com",
+  projectId: "brick-guide",
+  storageBucket: "brick-guide.firebasestorage.app",
+  messagingSenderId: "813833706997",
+  appId: "1:813833706997:web:feb3bbbc7669191fbd94bc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+const provider = new GoogleAuthProvider();
+
+const ADMIN_EMAIL = 'shrimpsushi12@gmail.com';
+
+let currentUser = null;
+let userRole = null; // 'admin' | 'member' | null
+
+// ── 인증 상태 감지 ──
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    // Firestore에서 역할 확인
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (user.email === ADMIN_EMAIL) {
+      userRole = 'admin';
+      // admin 자동 등록
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email, name: user.displayName,
+        role: 'admin', approved: true,
+        createdAt: serverTimestamp()
+      }, { merge: true });
+    } else if (userDoc.exists() && userDoc.data().approved) {
+      userRole = userDoc.data().role || 'member';
+    } else if (!userDoc.exists()) {
+      // 첫 로그인 → 승인 대기 등록
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email, name: user.displayName,
+        role: 'member', approved: false,
+        createdAt: serverTimestamp()
+      });
+      userRole = null;
+      showToast('로그인 완료! 관리자 승인 후 글 작성이 가능해요.');
+    } else {
+      userRole = null;
+    }
+    updateAuthUI();
+  } else {
+    userRole = null;
+    updateAuthUI();
+  }
+});
+
+function updateAuthUI() {
+  const btn = document.getElementById('authBtn');
+  const userInfo = document.getElementById('userInfo');
+  const adminPanel = document.getElementById('adminPanelBtn');
+  const writeBtn = document.getElementById('writeBtn');
+
+  if (currentUser) {
+    btn.textContent = '로그아웃';
+    btn.onclick = () => signOut(auth);
+    userInfo.textContent = currentUser.displayName || currentUser.email;
+    userInfo.style.display = 'block';
+    if (userRole === 'admin') {
+      adminPanel.style.display = 'flex';
+    }
+    if (userRole === 'admin' || userRole === 'member') {
+      if (writeBtn) writeBtn.style.display = 'flex';
+    }
+  } else {
+    btn.textContent = 'Google 로그인';
+    btn.onclick = () => signInWithPopup(auth, provider);
+    userInfo.style.display = 'none';
+    adminPanel.style.display = 'none';
+    if (writeBtn) writeBtn.style.display = 'none';
+  }
+}
+
+// ── 로그인 버튼 ──
+window.handleAuth = () => {
+  if (currentUser) signOut(auth);
+  else signInWithPopup(auth, provider);
+};
+
+// ── 어드민 패널 ──
+window.showAdminPanel = async () => {
+  if (userRole !== 'admin') return;
+  const modal = document.getElementById('adminModal');
+  modal.classList.add('show');
+  await loadAdminPanel();
+};
+
+window.closeAdminPanel = () => {
+  document.getElementById('adminModal').classList.remove('show');
+};
+
+async function loadAdminPanel() {
+  const list = document.getElementById('adminUserList');
+  list.innerHTML = '<p style="color:var(--text3);font-size:13px;">불러오는 중...</p>';
+  const snap = await getDocs(collection(db, 'users'));
+  const users = [];
+  snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+
+  if (users.length === 0) {
+    list.innerHTML = '<p style="color:var(--text3);font-size:13px;">등록된 사용자가 없어요.</p>';
+    return;
+  }
+
+  list.innerHTML = users.map(u => `
+    <div class="admin-user-row">
+      <div>
+        <div style="font-size:13px;font-weight:500">${u.name || u.email}</div>
+        <div style="font-size:11px;color:var(--text3)">${u.email}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${u.approved
+          ? `<span class="badge-approved">승인됨</span>
+             ${u.role !== 'admin' ? `<button class="admin-btn-sm danger" onclick="window.revokeUser('${u.id}')">취소</button>` : '<span class="badge-admin">Admin</span>'}`
+          : `<button class="admin-btn-sm" onclick="window.approveUser('${u.id}')">승인</button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+window.approveUser = async (uid) => {
+  await updateDoc(doc(db, 'users', uid), { approved: true });
+  showToast('승인 완료!');
+  await loadAdminPanel();
+};
+
+window.revokeUser = async (uid) => {
+  await updateDoc(doc(db, 'users', uid), { approved: false });
+  showToast('승인 취소됨');
+  await loadAdminPanel();
+};
+
+// ── 글 작성 에디터 ──
+window.showEditor = async (postId = null) => {
+  if (!currentUser || (!userRole)) {
+    showToast('로그인 및 승인이 필요해요.');
+    return;
+  }
+  const modal = document.getElementById('editorModal');
+  modal.classList.add('show');
+  document.getElementById('editorPostId').value = postId || '';
+  document.getElementById('editorTitle').value = '';
+  document.getElementById('editorCategory').value = 'guide-pre-god';
+  document.getElementById('editorBody').value = '';
+
+  if (postId) {
+    const snap = await getDoc(doc(db, 'posts', postId));
+    if (snap.exists()) {
+      const d = snap.data();
+      document.getElementById('editorTitle').value = d.title || '';
+      document.getElementById('editorCategory').value = d.category || 'guide-pre-god';
+      document.getElementById('editorBody').value = d.body || '';
+    }
+  }
+};
+
+window.closeEditor = () => {
+  document.getElementById('editorModal').classList.remove('show');
+};
+
+window.submitPost = async () => {
+  const postId = document.getElementById('editorPostId').value;
+  const title = document.getElementById('editorTitle').value.trim();
+  const category = document.getElementById('editorCategory').value;
+  const body = document.getElementById('editorBody').value.trim();
+
+  if (!title || !body) { showToast('제목과 내용을 입력해주세요.'); return; }
+
+  const data = {
+    title, category, body,
+    authorName: currentUser.displayName || currentUser.email,
+    authorEmail: currentUser.email,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (postId) {
+    await updateDoc(doc(db, 'posts', postId), data);
+    showToast('수정 완료!');
+  } else {
+    data.createdAt = serverTimestamp();
+    await addDoc(collection(db, 'posts'), data);
+    showToast('게시 완료!');
+  }
+
+  closeEditor();
+  // 현재 가이드 페이지면 새로고침
+  if (window._currentPage && GUIDES[window._currentPage]) {
+    loadGuide(window._currentPage);
+  }
+};
+
+// ── 이미지 업로드 ──
+window.uploadImage = async () => {
+  const file = document.getElementById('imageUpload').files[0];
+  if (!file) return;
+  const storageRef = ref(storage, `guide-images/${Date.now()}_${file.name}`);
+  await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(storageRef);
+  const tag = `<div class="img-wrap"><img src="${url}" alt="이미지"><div class="img-caption">설명 입력</div></div>`;
+  const body = document.getElementById('editorBody');
+  body.value += '\n' + tag;
+  showToast('이미지 업로드 완료! 에디터에 추가됐어요.');
+};
+
+// ── 가이드 로드 (Firestore 우선, 없으면 파일) ──
+window.loadGuide = async (page) => {
+  window._currentPage = page;
+  const g = GUIDES[page];
+  if (!g) return;
+
+  document.getElementById('guideTitle').textContent = g.title;
+  document.getElementById('guideDesc').textContent = g.desc;
+  document.getElementById('guideBody').innerHTML = '<p style="color:var(--text3);font-size:13px;">불러오는 중...</p>';
+
+  // write 버튼 업데이트
+  const writeBtn = document.getElementById('writeBtn');
+  if (writeBtn && (userRole === 'admin' || userRole === 'member')) {
+    writeBtn.onclick = () => window.showEditor(null);
+    writeBtn.style.display = 'flex';
+  }
+
+  // Firestore에서 해당 카테고리 글 조회
+  const q = query(collection(db, 'posts'), orderBy('updatedAt', 'desc'));
+  const snap = await getDocs(q);
+  const posts = [];
+  snap.forEach(d => {
+    if (d.data().category === page) posts.push({ id: d.id, ...d.data() });
+  });
+
+  let html = '';
+  if (posts.length > 0) {
+    posts.forEach(post => {
+      const canEdit = userRole === 'admin' || post.authorEmail === currentUser?.email;
+      html += `
+        <div class="post-card">
+          <div class="post-header">
+            <div class="post-title">${post.title}</div>
+            <div class="post-meta">${post.authorName} · ${post.updatedAt?.toDate?.()?.toLocaleDateString('ko-KR') || ''}</div>
+          </div>
+          <div class="post-body">${post.body}</div>
+          ${canEdit ? `
+            <div class="post-actions">
+              <button class="post-action-btn" onclick="window.showEditor('${post.id}')">수정</button>
+              ${userRole === 'admin' ? `<button class="post-action-btn danger" onclick="window.deletePost('${post.id}')">삭제</button>` : ''}
+            </div>` : ''}
+        </div>`;
+    });
+  } else {
+    // Firestore에 글 없으면 파일 로드
+    try {
+      const res = await fetch(g.src);
+      if (!res.ok) throw new Error();
+      html = await res.text();
+    } catch {
+      html = '<p style="color:var(--text3);font-size:13px;">아직 작성 중인 가이드예요.</p>';
+    }
+  }
+
+  document.getElementById('guideBody').innerHTML = html;
+};
+
+window.deletePost = async (postId) => {
+  if (!confirm('정말 삭제할까요?')) return;
+  await deleteDoc(doc(db, 'posts', postId));
+  showToast('삭제 완료');
+  if (window._currentPage) loadGuide(window._currentPage);
+};
+
+// 전역으로 노출
+window._firebase = { auth, db, storage, currentUser: () => currentUser, userRole: () => userRole };
+</script>
+
 <style>
 :root {
   --bg: #f5f4f0; --surface: #fff; --surface2: #f0efe9;
   --border: #e2e0d8; --border2: #d0cec4;
   --text: #1a1917; --text2: #6b6960; --text3: #9b998f;
   --teal: #1D9E75; --teal-light: #E1F5EE; --teal-border: #5DCAA5;
-  --amber-light: #FAEEDA; --purple-light: #EEEDFE;
-  --blue-light: #E6F1FB;
+  --amber-light: #FAEEDA; --purple-light: #EEEDFE; --blue-light: #E6F1FB;
   --sidebar-w: 220px; --radius: 10px; --radius-sm: 6px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
 a { text-decoration: none; color: inherit; }
 
-/* ── 레이아웃 ── */
 .app { display: flex; min-height: 100vh; }
 
 /* ── 사이드바 ── */
@@ -31,20 +320,24 @@ a { text-decoration: none; color: inherit; }
   overflow-y: auto; z-index: 100; transition: transform 0.25s ease;
   display: flex; flex-direction: column;
 }
-.sidebar-header { padding: 20px 16px 16px; border-bottom: 1px solid var(--border); }
-.site-logo { display: flex; align-items: center; gap: 10px; }
+.sidebar-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+.site-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .logo-icon { width: 34px; height: 34px; background: var(--text); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; flex-shrink: 0; cursor: pointer; }
 .site-name { font-size: 14px; font-weight: 700; line-height: 1.2; cursor: pointer; }
 .site-sub { font-size: 11px; color: var(--text3); }
+
+/* 로그인 영역 */
+.auth-area { display: flex; flex-direction: column; gap: 6px; }
+.user-info { font-size: 11px; color: var(--text2); display: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.auth-btn { padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; transition: all 0.15s; text-align: center; }
+.auth-btn:hover { border-color: var(--teal-border); color: var(--teal); }
+.admin-panel-btn { display: none; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; }
+.admin-panel-btn:hover { border-color: var(--teal-border); color: var(--teal); }
+
 .nav { padding: 10px 8px; flex: 1; }
 .nav-group { margin-bottom: 4px; }
 .nav-group-label { font-size: 10px; font-weight: 500; color: var(--text3); letter-spacing: 0.06em; padding: 8px 8px 4px; text-transform: uppercase; }
-.nav-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 8px; border-radius: var(--radius-sm);
-  font-size: 13px; color: var(--text2); cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius-sm); font-size: 13px; color: var(--text2); cursor: pointer; transition: background 0.15s, color 0.15s; }
 .nav-item:hover { background: var(--surface2); color: var(--text); }
 .nav-item.active { background: var(--surface2); color: var(--text); font-weight: 500; }
 .nav-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
@@ -53,72 +346,44 @@ a { text-decoration: none; color: inherit; }
 
 /* ── 메인 ── */
 .main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
-
-/* ── 뷰 공통 ── */
 .view { display: none; padding: 28px 28px 60px; max-width: 960px; }
 .view.active { display: block; }
-
-/* iframe 뷰 (계산기/도구) */
 .view-iframe { display: none; padding: 0; max-width: none; }
 .view-iframe.active { display: flex; flex-direction: column; height: 100vh; }
-.iframe-topbar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px; background: var(--surface);
-  border-bottom: 1px solid var(--border); flex-shrink: 0;
-}
-.back-btn {
-  background: none; border: 1px solid var(--border2);
-  border-radius: var(--radius-sm); padding: 5px 12px;
-  font-size: 12px; color: var(--text2); cursor: pointer;
-  font-family: inherit; transition: all 0.15s;
-}
+.iframe-topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.back-btn { background: none; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: inherit; transition: all 0.15s; }
 .back-btn:hover { border-color: var(--teal-border); color: var(--teal); }
 .iframe-title { font-size: 14px; font-weight: 500; }
 .content-iframe { flex: 1; border: none; width: 100%; }
 
-/* ── 홈 뷰 ── */
-.update-banner {
-  display: flex; align-items: center; gap: 10px;
-  background: var(--teal-light); border: 1px solid var(--teal-border);
-  border-radius: var(--radius); padding: 11px 16px;
-  margin-bottom: 24px; font-size: 13px; color: #0F6E56;
-}
+/* ── 홈 ── */
+.update-banner { display: flex; align-items: center; gap: 10px; background: var(--teal-light); border: 1px solid var(--teal-border); border-radius: var(--radius); padding: 11px 16px; margin-bottom: 24px; font-size: 13px; color: #0F6E56; }
 .banner-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); flex-shrink: 0; animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .banner-text { flex: 1; }
 .banner-link { font-size: 12px; color: var(--teal); font-weight: 500; white-space: nowrap; }
 .banner-link:hover { text-decoration: underline; }
-
 .search-wrap { position: relative; margin-bottom: 18px; }
-.search-input {
-  width: 100%; padding: 10px 14px 10px 38px;
-  border: 1px solid var(--border2); border-radius: var(--radius);
-  background: var(--surface); font-size: 13px; font-family: inherit;
-  color: var(--text); outline: none; transition: border 0.15s;
-}
+.search-input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); font-size: 13px; font-family: inherit; color: var(--text); outline: none; transition: border 0.15s; }
 .search-input:focus { border-color: var(--teal-border); }
 .search-input::placeholder { color: var(--text3); }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; pointer-events: none; }
-
 .tag-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
 .tag { padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border2); font-size: 12px; color: var(--text2); background: var(--surface); cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .tag:hover { border-color: var(--teal-border); color: var(--teal); }
 .tag.active { background: var(--teal-light); border-color: var(--teal-border); color: #0F6E56; font-weight: 500; }
-
 .section { margin-bottom: 32px; }
 .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .section-title { font-size: 12px; font-weight: 500; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; }
 .section-line { flex: 1; height: 1px; background: var(--border); }
-
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; position: relative; }
 .card:hover { border-color: var(--border2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .card.pinned { border-color: var(--teal-border); }
 .card-pin { position: absolute; top: 10px; right: 10px; font-size: 10px; background: var(--teal-light); color: #0F6E56; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
 .card-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 4px; }
-.ic-teal { background: var(--teal-light); } .ic-amber { background: var(--amber-light); }
-.ic-purple { background: var(--purple-light); } .ic-blue { background: var(--blue-light); }
-.ic-gray { background: var(--surface2); }
+.ic-teal{background:var(--teal-light)} .ic-amber{background:var(--amber-light)}
+.ic-purple{background:var(--purple-light)} .ic-blue{background:var(--blue-light)} .ic-gray{background:var(--surface2)}
 .card-name { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.3; }
 .card-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
 .card-footer { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
@@ -126,24 +391,80 @@ a { text-decoration: none; color: inherit; }
 .empty-msg { display: none; text-align: center; padding: 48px 0; color: var(--text3); font-size: 13px; }
 
 /* ── 가이드 뷰 ── */
-.guide-header { margin-bottom: 24px; }
+.guide-header { margin-bottom: 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.guide-header-left { flex: 1; }
 .guide-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
 .guide-desc { font-size: 13px; color: var(--text2); }
-.guide-body { font-size: 14px; line-height: 1.8; color: var(--text); }
-.guide-body h2 { font-size: 17px; font-weight: 700; margin: 28px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.guide-body h3 { font-size: 15px; font-weight: 500; margin: 20px 0 8px; }
-.guide-body p { margin-bottom: 12px; }
-.guide-body ul, .guide-body ol { padding-left: 20px; margin-bottom: 12px; }
-.guide-body li { margin-bottom: 4px; }
-.guide-body table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
-.guide-body th { background: var(--surface2); padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-weight: 500; }
-.guide-body td { padding: 8px 12px; border: 1px solid var(--border); }
-.guide-body .tip { background: var(--teal-light); border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 12px; font-size: 13px; color: #0F6E56; }
+.write-btn { display: none; align-items: center; gap: 6px; padding: 8px 14px; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; font-weight: 500; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+.write-btn:hover { background: #0F6E56; }
 
-/* ── 모바일 헤더 ── */
+/* 포스트 카드 */
+.post-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+.post-header { margin-bottom: 12px; }
+.post-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.post-meta { font-size: 11px; color: var(--text3); }
+.post-body { font-size: 14px; line-height: 1.8; }
+.post-body h2 { font-size: 17px; font-weight: 700; margin: 24px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.post-body h3 { font-size: 15px; font-weight: 500; margin: 18px 0 8px; }
+.post-body p { margin-bottom: 12px; }
+.post-body ul, .post-body ol { padding-left: 20px; margin-bottom: 12px; }
+.post-body li { margin-bottom: 4px; }
+.post-body table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; display: block; overflow-x: auto; }
+.post-body th { background: var(--surface2); padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-weight: 500; white-space: nowrap; }
+.post-body td { padding: 8px 12px; border: 1px solid var(--border); }
+.post-body tr:nth-child(even) td { background: var(--surface2); }
+.post-body .tip { background: var(--teal-light); border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 12px; font-size: 13px; color: #0F6E56; }
+.post-body .warn { background: var(--amber-light); border-left: 3px solid #BA7517; padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 12px; font-size: 13px; color: #854F0B; }
+.post-body .info-box { background: var(--surface2); border-left: 3px solid var(--border2); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 12px; font-size: 13px; color: var(--text2); }
+.post-body .img-wrap { margin: 16px 0; text-align: center; }
+.post-body .img-wrap img { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.post-body .img-caption { font-size: 12px; color: var(--text3); margin-top: 6px; }
+.post-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.post-action-btn { padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+.post-action-btn:hover { border-color: var(--teal-border); color: var(--teal); }
+.post-action-btn.danger:hover { border-color: #E64A19; color: #E64A19; }
+
+/* ── 모달 공통 ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-title { font-size: 15px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 18px; color: var(--text3); cursor: pointer; padding: 4px; }
+.modal-body { padding: 20px; }
+
+/* 어드민 패널 */
+.admin-user-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.admin-user-row:last-child { border-bottom: none; }
+.admin-btn-sm { padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--teal-border); background: var(--teal-light); color: #0F6E56; font-size: 12px; font-family: inherit; cursor: pointer; }
+.admin-btn-sm.danger { border-color: #f9a8a8; background: #fff5f5; color: #E64A19; }
+.badge-approved { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--teal-light); color: #0F6E56; font-weight: 500; }
+.badge-admin { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--purple-light); color: #534AB7; font-weight: 500; }
+
+/* 에디터 */
+.editor-field { margin-bottom: 14px; }
+.editor-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+.editor-input { width: 100%; padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; color: var(--text); outline: none; transition: border 0.15s; background: var(--surface); }
+.editor-input:focus { border-color: var(--teal-border); }
+.editor-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; font-family: 'DM Mono', monospace; color: var(--text); outline: none; transition: border 0.15s; background: var(--surface); min-height: 280px; resize: vertical; line-height: 1.6; }
+.editor-textarea:focus { border-color: var(--teal-border); }
+.editor-hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.editor-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn-submit { flex: 1; padding: 10px; background: var(--teal); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; font-weight: 500; cursor: pointer; }
+.btn-submit:hover { background: #0F6E56; }
+.btn-cancel { padding: 10px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; color: var(--text2); cursor: pointer; }
+.image-upload-row { display: flex; gap: 8px; align-items: center; }
+.btn-upload { padding: 7px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; white-space: nowrap; }
+.btn-upload:hover { border-color: var(--teal-border); color: var(--teal); }
+
+/* ── 토스트 ── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1917; color: #fff; padding: 10px 20px; border-radius: 99px; font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.25s ease, opacity 0.25s ease; opacity: 0; white-space: nowrap; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── 모바일 ── */
 .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 200; align-items: center; padding: 0 16px; gap: 12px; }
 .hamburger { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text); padding: 4px; }
-.mobile-title { font-size: 14px; font-weight: 700; }
+.mobile-title { font-size: 14px; font-weight: 700; flex: 1; }
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 99; }
 .overlay.show { display: block; }
 
@@ -154,6 +475,7 @@ a { text-decoration: none; color: inherit; }
   .view { padding: 72px 16px 48px; }
   .mobile-header { display: flex; }
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .modal { max-height: 92vh; }
 }
 </style>
 </head>
@@ -166,8 +488,6 @@ a { text-decoration: none; color: inherit; }
 <div class="overlay" id="overlay"></div>
 
 <div class="app">
-
-  <!-- 사이드바 -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="site-logo">
@@ -176,6 +496,11 @@ a { text-decoration: none; color: inherit; }
           <div class="site-name" onclick="navigate('home')">벽돌주식회사</div>
           <div class="site-sub">통합 정보사이트</div>
         </div>
+      </div>
+      <div class="auth-area">
+        <div class="user-info" id="userInfo"></div>
+        <button class="auth-btn" id="authBtn" onclick="handleAuth()">Google 로그인</button>
+        <button class="admin-panel-btn" id="adminPanelBtn" onclick="showAdminPanel()" style="display:none">⚙ 멤버 관리</button>
       </div>
     </div>
     <nav class="nav">
@@ -219,10 +544,9 @@ a { text-decoration: none; color: inherit; }
     </nav>
   </aside>
 
-  <!-- 메인 -->
   <main class="main" id="main">
 
-    <!-- ── 홈 ── -->
+    <!-- 홈 -->
     <div class="view active" id="view-home">
       <div class="update-banner">
         <div class="banner-dot"></div>
@@ -263,18 +587,19 @@ a { text-decoration: none; color: inherit; }
       </div>
     </div>
 
-    <!-- ── 가이드 뷰 (동적으로 내용 채워짐) ── -->
+    <!-- 가이드 뷰 -->
     <div class="view" id="view-guide">
       <div class="guide-header">
-        <div class="guide-title" id="guideTitle"></div>
-        <div class="guide-desc" id="guideDesc"></div>
+        <div class="guide-header-left">
+          <div class="guide-title" id="guideTitle"></div>
+          <div class="guide-desc" id="guideDesc"></div>
+        </div>
+        <button class="write-btn" id="writeBtn" style="display:none">✏ 글 작성</button>
       </div>
-      <div class="guide-body" id="guideBody">
-        <!-- 가이드 내용은 GUIDES 데이터에서 채워짐 -->
-      </div>
+      <div id="guideBody"></div>
     </div>
 
-    <!-- ── iframe 뷰 (계산기/도구) ── -->
+    <!-- iframe 뷰 -->
     <div class="view-iframe" id="view-iframe">
       <div class="iframe-topbar">
         <button class="back-btn" onclick="navigate('home')">← 홈으로</button>
@@ -286,58 +611,116 @@ a { text-decoration: none; color: inherit; }
   </main>
 </div>
 
+<!-- 어드민 패널 모달 -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚙ 멤버 관리</div>
+      <button class="modal-close" onclick="closeAdminPanel()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="adminUserList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 글 작성 에디터 모달 -->
+<div class="modal-overlay" id="editorModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏ 글 작성</div>
+      <button class="modal-close" onclick="closeEditor()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editorPostId">
+      <div class="editor-field">
+        <label class="editor-label">카테고리</label>
+        <select class="editor-input" id="editorCategory">
+          <option value="guide-pre-god">신 이전</option>
+          <option value="guide-god1-4">신1 ~ 신4</option>
+          <option value="guide-god4-7">신4 ~ 신7</option>
+          <option value="guide-god7-11">신7 ~ 신11</option>
+          <option value="guide-god11-15">신11 ~ 신15</option>
+          <option value="guide-super1-4">초월신1 ~ 4</option>
+          <option value="guide-super4">초월신4 이후</option>
+          <option value="guide-dive">다이브</option>
+          <option value="guide-beast-guide">신수 공략</option>
+          <option value="guide-dimension-guide">차원탐사 공략</option>
+        </select>
+      </div>
+      <div class="editor-field">
+        <label class="editor-label">제목</label>
+        <input class="editor-input" type="text" id="editorTitle" placeholder="글 제목">
+      </div>
+      <div class="editor-field">
+        <label class="editor-label">이미지 업로드</label>
+        <div class="image-upload-row">
+          <input type="file" id="imageUpload" accept="image/*" style="flex:1;font-size:12px">
+          <button class="btn-upload" onclick="uploadImage()">업로드</button>
+        </div>
+        <div class="editor-hint">업로드하면 본문에 자동 삽입돼요.</div>
+      </div>
+      <div class="editor-field">
+        <label class="editor-label">본문 (HTML 작성)</label>
+        <textarea class="editor-textarea" id="editorBody" placeholder="<h2>제목</h2>&#10;<p>내용</p>&#10;<div class=&quot;tip&quot;>💡 팁</div>"></textarea>
+        <div class="editor-hint">h2, h3, p, ul, table, .tip .warn .info-box .img-wrap 사용 가능</div>
+      </div>
+      <div class="editor-actions">
+        <button class="btn-cancel" onclick="closeEditor()">취소</button>
+        <button class="btn-submit" onclick="submitPost()">게시하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-// ── 카드 데이터 ──
 const CARDS = [
   { id:1,  name:"공식 홈페이지",          desc:"시즈닝게임즈 공식 홈페이지",                                 icon:"🌐", iconClass:"ic-teal",   tags:["main"],  section:"pin",      pinned:true, page:null, url:"https://www.seasoninggames.com/ko/blog", external:true },
-  { id:2,  name:"Deathfisaro's 가이드북", desc:"세부팁, 자원 획득, 랭크벨 해금, 과학/양자/진리나무 최적화",       icon:"📘", iconClass:"ic-blue",   tags:["guide"], section:"pin",      pinned:true, page:null, url:"https://deathfisaro.github.io/brickinc/", external:true },
-  { id:3,  name:"네이버 카페",            desc:"업데이트 노트정리 및 공략 갱신",                                icon:"📘", iconClass:"ic-green",   tags:["guide"], section:"pin",      pinned:true, page:null, url:"https://cafe.naver.com/brickinc", external:true },
-  { id:4,  name:"신 이전",                desc:"신 이전 구간 가이드",                                        icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-pre-god" },
-  { id:5,  name:"신1 ~ 신4",              desc:"신1~신4 구간 가이드",                                        icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god1-4" },
-  { id:6,  name:"신4 ~ 신7",              desc:"신4~신7 구간 가이드",                                        icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god4-7" },
-  { id:7,  name:"신7 ~ 신11",             desc:"신7~신11 구간 가이드",                                       icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god7-11" },
-  { id:8,  name:"신11 ~ 신15",            desc:"신11~신15 구간 가이드",                                      icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god11-15" },
-  { id:9,  name:"초월신1 ~ 4",            desc:"초월신1~4 구간 가이드",                                      icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-super1-4" },
-  { id:10,  name:"초월신4 이후",           desc:"초월신4 이후 운영 가이드",                                   icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-super4" },
-  { id:11, name:"다이브",                 desc:"다이브 공략",                                                icon:"🤿", iconClass:"ic-blue",   tags:["guide"], section:"strategy", page:"guide-dive" },
-  { id:12, name:"신수 공략",              desc:"신수 공략집",                                                icon:"🐉", iconClass:"ic-teal",   tags:["guide"], section:"strategy", page:"guide-beast-guide" },
-  { id:13, name:"차원탐사 공략",          desc:"차원탐사 공략집",                                            icon:"🔭", iconClass:"ic-purple", tags:["guide"], section:"strategy", page:"guide-dimension-guide" },
-  { id:14, name:"득도·승천 계산기",       desc:"득도 승천 계산기",                                           icon:"⚡", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-ascension" },
-  { id:15, name:"제련 계산기",            desc:"재화별 제련 비용 계산",                                      icon:"🔨", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-forge" },
-  { id:16, name:"신수 계산기",            desc:"신수 각성·폭주 비용 계산",                                   icon:"🧮", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-beast-cal" },
-  { id:17, name:"차원탐사 기댓값",        desc:"차원탐사 기댓값 계산기",                                     icon:"🎲", iconClass:"ic-purple", tags:["cal"],   section:"cal",      page:"calc-dimension-ev" },
-  { id:18, name:"진리의 길",              desc:"최적경로 찾기",                                               icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     page:"tool-path" },
-  { id:19, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과 확인",                              icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     page:"tool-tree" },
-  { id:20, name:"과금내역 확인",          desc:"벽돌주식회사 과금내역 확인 (구글)",                          icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     page:null, url:"https://brickredpill.netlify.app/", external:true },
+  { id:2,  name:"Deathfisaro's 가이드북", desc:"세부팁, 자원 획득, 랭크벨 해금, 과학/양자/진리나무 최적화", icon:"📘", iconClass:"ic-blue",   tags:["guide"], section:"pin",      pinned:true, page:null, url:"https://brickinc-guide.netlify.app/", external:true },
+  { id:3,  name:"신 이전",                desc:"신 이전 구간 가이드",                                        icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-pre-god" },
+  { id:4,  name:"신1 ~ 신4",              desc:"신1~신4 구간 가이드",                                        icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god1-4" },
+  { id:5,  name:"신4 ~ 신7",              desc:"신4~신7 구간 가이드",                                        icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god4-7" },
+  { id:6,  name:"신7 ~ 신11",             desc:"신7~신11 구간 가이드",                                       icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god7-11" },
+  { id:7,  name:"신11 ~ 신15",            desc:"신11~신15 구간 가이드",                                      icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god11-15" },
+  { id:8,  name:"초월신1 ~ 4",            desc:"초월신1~4 구간 가이드",                                      icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-super1-4" },
+  { id:9,  name:"초월신4 이후",           desc:"초월신4 이후 운영 가이드",                                   icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-super4" },
+  { id:10, name:"다이브",                 desc:"다이브 공략",                                                icon:"🤿", iconClass:"ic-blue",   tags:["guide"], section:"strategy", page:"guide-dive" },
+  { id:11, name:"신수 공략",              desc:"신수 공략집",                                                icon:"🐉", iconClass:"ic-teal",   tags:["guide"], section:"strategy", page:"guide-beast-guide" },
+  { id:12, name:"차원탐사 공략",          desc:"차원탐사 공략집",                                            icon:"🔭", iconClass:"ic-purple", tags:["guide"], section:"strategy", page:"guide-dimension-guide" },
+  { id:13, name:"득도·승천 계산기",       desc:"득도 승천 계산기",                                           icon:"⚡", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-ascension" },
+  { id:14, name:"제련 계산기",            desc:"재화별 제련 비용 계산",                                      icon:"🔨", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-forge" },
+  { id:15, name:"신수 계산기",            desc:"신수 각성·폭주 비용 계산",                                   icon:"🧮", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-beast-cal" },
+  { id:16, name:"차원탐사 기댓값",        desc:"차원탐사 기댓값 계산기",                                     icon:"🎲", iconClass:"ic-purple", tags:["cal"],   section:"cal",      page:"calc-dimension-ev" },
+  { id:17, name:"진리의 길",              desc:"최적경로 찾기",                                               icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     page:"tool-path" },
+  { id:18, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과 확인",                              icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     page:"tool-tree" },
+  { id:19, name:"과금내역 확인",          desc:"벽돌주식회사 과금내역 확인 (구글)",                          icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     page:null, url:"https://docs.google.com/", external:true },
 ];
 
-// ── iframe으로 열 페이지 (이미지 리소스 있는 것들) ──
 const IFRAME_PAGES = {
-  'calc-ascension':    { src: 'calc/ascension.html',         title: '득도·승천 계산기' },
-  'calc-forge':        { src: 'calc/forge.html',             title: '제련 계산기' },
+  'calc-ascension':    { src: 'calc/ascension.html',           title: '득도·승천 계산기' },
+  'calc-forge':        { src: 'calc/forge.html',               title: '제련 계산기' },
   'calc-beast-cal':    { src: 'calc/beast-cal/beast-cal.html', title: '신수 계산기' },
-  'calc-dimension-ev': { src: 'calc/dimension-ev.html',      title: '차원탐사 기댓값' },
-  'tool-path':         { src: 'tool/path.html',              title: '진리의 길' },
-  'tool-tree':         { src: 'tool/tree/tree.html',         title: '진리의 나무' },
+  'calc-dimension-ev': { src: 'calc/dimension-ev.html',        title: '차원탐사 기댓값' },
+  'tool-path':         { src: 'tool/path.html',                title: '진리의 길' },
+  'tool-tree':         { src: 'tool/tree/tree.html',           title: '진리의 나무' },
 };
 
-// ── 가이드 데이터 (내용은 추후 채우기) ──
 const GUIDES = {
-  'guide-pre-god':          { title: '신 이전', desc: '신 이전 구간 공략 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-god1-4':           { title: '신1 ~ 신4', desc: '신1~신4 구간 공략 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-god4-7':           { title: '신4 ~ 신7', desc: '신4~신7 구간 공략 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-god7-11':          { title: '신7 ~ 신11', desc: '신7~신11 구간 공략 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-god11-15':         { title: '신11 ~ 신15', desc: '신11~신15 구간 공략 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-super1-4':         { title: '초월신1 ~ 4', desc: '초월신1~4 구간 공략 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-super4':           { title: '초월신4 이후', desc: '초월신4 이후 운영 가이드', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-dive':             { title: '다이브', desc: '다이브 공략', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-beast-guide':      { title: '신수 공략', desc: '신수 공략집', body: '<p>내용을 작성해주세요.</p>' },
-  'guide-dimension-guide':  { title: '차원탐사 공략', desc: '차원탐사 공략집', body: '<p>내용을 작성해주세요.</p>' },
+  'guide-pre-god':         { title: '신 이전',      desc: '신 이전 구간 공략 가이드',    src: 'guide/pre-god.html' },
+  'guide-god1-4':          { title: '신1 ~ 신4',    desc: '신1~신4 구간 공략 가이드',    src: 'guide/god1-4.html' },
+  'guide-god4-7':          { title: '신4 ~ 신7',    desc: '신4~신7 구간 공략 가이드',    src: 'guide/god4-7.html' },
+  'guide-god7-11':         { title: '신7 ~ 신11',   desc: '신7~신11 구간 공략 가이드',   src: 'guide/god7-11.html' },
+  'guide-god11-15':        { title: '신11 ~ 신15',  desc: '신11~신15 구간 공략 가이드',  src: 'guide/god11-15.html' },
+  'guide-super1-4':        { title: '초월신1 ~ 4',  desc: '초월신1~4 구간 공략 가이드',  src: 'guide/super1-4.html' },
+  'guide-super4':          { title: '초월신4 이후', desc: '초월신4 이후 운영 가이드',    src: 'guide/super4.html' },
+  'guide-dive':            { title: '다이브',       desc: '다이브 공략',                 src: 'guide/dive.html' },
+  'guide-beast-guide':     { title: '신수 공략',    desc: '신수 공략집',                 src: 'guide/beast-guide.html' },
+  'guide-dimension-guide': { title: '차원탐사 공략',desc: '차원탐사 공략집',             src: 'guide/dimension-guide.html' },
 };
 
 // ── 라우터 ──
-let currentPage = 'home';
-
 function navigate(page) {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
@@ -346,45 +729,26 @@ function navigate(page) {
 }
 
 function showPage(page) {
-  currentPage = page;
-
-  // 모든 뷰 숨기기
   document.querySelectorAll('.view, .view-iframe').forEach(v => v.classList.remove('active'));
-
-  // 사이드바 active 상태
   document.querySelectorAll('.nav-item[data-page]').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
   });
-
-  // 모바일 타이틀
   const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
-  document.getElementById('mobileTitle').textContent = navEl
-    ? navEl.textContent.trim()
-    : '벽돌주식회사';
+  document.getElementById('mobileTitle').textContent = navEl ? navEl.textContent.trim() : '벽돌주식회사';
 
   if (page === 'home') {
     document.getElementById('view-home').classList.add('active');
     document.querySelector('.nav-item[data-page="home"]').classList.add('active');
-
   } else if (IFRAME_PAGES[page]) {
-    // iframe 뷰
     const info = IFRAME_PAGES[page];
     document.getElementById('iframeTitle').textContent = info.title;
     const iframe = document.getElementById('contentIframe');
-    // 같은 src면 재로드 안 함
-    if (iframe.src !== location.origin + '/' + info.src) {
-      iframe.src = info.src;
-    }
+    if (!iframe.src.endsWith(info.src)) iframe.src = info.src;
     document.getElementById('view-iframe').classList.add('active');
-
   } else if (GUIDES[page]) {
-    // 가이드 뷰
-    const g = GUIDES[page];
-    document.getElementById('guideTitle').textContent = g.title;
-    document.getElementById('guideDesc').textContent = g.desc;
-    document.getElementById('guideBody').innerHTML = g.body;
     document.getElementById('view-guide').classList.add('active');
     window.scrollTo(0, 0);
+    window.loadGuide(page);
   }
 }
 
@@ -464,6 +828,17 @@ async function loadBanner() {
   }
 }
 
+// ── 토스트 ──
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+window.showToast = showToast;
+
 // ── 모바일 사이드바 ──
 document.getElementById('menuBtn').addEventListener('click', () => {
   document.getElementById('sidebar').classList.toggle('open');
@@ -476,14 +851,14 @@ document.getElementById('overlay').addEventListener('click', () => {
 
 // ── 히스토리 라우팅 ──
 window.addEventListener('popstate', (e) => {
-  const page = (e.state && e.state.page) || location.hash.replace('#', '') || 'home';
+  const page = (e.state && e.state.page) || location.hash.replace('#','') || 'home';
   showPage(page);
 });
 
 // ── 초기화 ──
 initCards();
 loadBanner();
-const initPage = location.hash.replace('#', '') || 'home';
+const initPage = location.hash.replace('#','') || 'home';
 history.replaceState({ page: initPage }, '', location.href);
 showPage(initPage);
 </script>
