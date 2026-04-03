@@ -11,7 +11,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
          getDocs, query, where, orderBy, serverTimestamp }
@@ -65,10 +65,7 @@ function updateAuthUI() {
     userInfo.style.display = 'block';
   } else {
     btn.textContent = 'Google 로그인';
-    btn.onclick = () => signInWithPopup(auth, provider).catch(() => {
-      // 팝업 차단 시 리다이렉트 방식으로 폴백
-      signInWithRedirect(auth, provider);
-    });
+    btn.onclick = () => signInWithRedirect(auth, provider);
     userInfo.style.display = 'none';
   }
 }
