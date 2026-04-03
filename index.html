@@ -49,15 +49,29 @@ async function hashPw(pw) {
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// ── 리다이렉트 결과 처리 ──
-getRedirectResult(auth).catch(() => {});
-
 // ── 인증 상태 ──
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async (user) => {
+  // 리다이렉트 로그인 결과 처리
+  if (!user) {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result?.user) {
+        currentUser = result.user;
+        isAdmin = currentUser.email === ADMIN;
+        updateAuthUI();
+        showToast('로그인 완료!');
+        if (window._currentGuide) loadBoard(window._currentGuide);
+        return;
+      }
+    } catch(e) {
+      if (e.code !== 'auth/no-auth-event') {
+        showToast('로그인 오류: ' + e.message);
+      }
+    }
+  }
   currentUser = user;
   isAdmin = user?.email === ADMIN;
   updateAuthUI();
-  // 현재 가이드 페이지면 새로고침
   if (window._currentGuide) loadBoard(window._currentGuide);
 });
 
