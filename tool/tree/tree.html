@@ -417,10 +417,91 @@
     transition: all 0.15s;
   }
   .mode-tab.active { border-color: var(--active-color); color: var(--active-color); background: rgba(0,180,80,0.1); }
+
+  /* ── 가이드 플로팅 버튼 ── */
+  .guide-float-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 999;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--panel-bg); border: 1.5px solid var(--gold);
+    color: var(--gold); font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 0 12px rgba(200,168,75,0.3);
+    transition: all 0.2s;
+  }
+  .guide-float-btn:hover {
+    background: rgba(200,168,75,0.15);
+    box-shadow: 0 0 20px rgba(200,168,75,0.5);
+    transform: scale(1.1);
+  }
+
+  /* ── 가이드 모달 ── */
+  .guide-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 1000;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .guide-modal-overlay.show { display: flex; }
+  .guide-modal {
+    background: #0a1e10; border: 1px solid var(--panel-border);
+    border-radius: 10px; width: 100%; max-width: 520px;
+    max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 0 40px rgba(0,200,80,0.15);
+  }
+  .guide-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--panel-border);
+    position: sticky; top: 0; background: #0a1e10; z-index: 1;
+  }
+  .guide-modal-header h2 {
+    font-family: 'Cinzel', serif; font-size: 1rem;
+    color: var(--gold); letter-spacing: 0.08em;
+  }
+  .guide-modal-close {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 20px; cursor: pointer; padding: 2px 6px;
+    transition: color 0.15s;
+  }
+  .guide-modal-close:hover { color: var(--text); }
+  .guide-modal-body { padding: 16px 18px; font-size: 0.78rem; line-height: 1.7; color: var(--text); }
+  .guide-section { margin-bottom: 18px; }
+  .guide-section h3 {
+    font-size: 0.8rem; font-weight: 600; color: var(--gold-light);
+    margin-bottom: 8px; padding-bottom: 5px;
+    border-bottom: 1px solid rgba(200,168,75,0.2);
+  }
+  .guide-section p { color: var(--text); margin-bottom: 6px; }
+  .guide-section ul { padding-left: 16px; }
+  .guide-section ul li { margin-bottom: 4px; color: var(--text); }
+  .guide-tip {
+    background: rgba(0,60,25,0.4); border-left: 3px solid var(--active-color);
+    border-radius: 0 6px 6px 0; padding: 8px 12px;
+    margin: 8px 0; font-size: 0.75rem; color: #88ffaa;
+  }
+  .guide-warn {
+    background: rgba(80,40,0,0.4); border-left: 3px solid var(--gold);
+    border-radius: 0 6px 6px 0; padding: 8px 12px;
+    margin: 8px 0; font-size: 0.75rem; color: var(--gold-light);
+  }
+  .guide-step {
+    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px;
+  }
+  .guide-step-num {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(0,180,80,0.2); border: 1px solid var(--active-color);
+    color: var(--active-color); font-size: 0.7rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .guide-step-text { flex: 1; padding-top: 2px; }
+
 </style>
 </head>
 <body>
 
+
+<header>
+  <h1>🌳 진리의 나무</h1>
+  <p>목표별 최적 경로 자동 탐색 · 중앙에서 연결 확장 · 포인트 배분 최적화</p>
+</header>
 
 <div class="top-bar">
   <div class="point-display">
@@ -1633,6 +1714,109 @@ document.getElementById('import-btn').addEventListener('click', ()=>{
 });
 
 refresh();
+</script>
+
+
+<!-- 가이드 플로팅 버튼 -->
+<button class="guide-float-btn" onclick="document.getElementById('guideModal').classList.add('show')" title="사용 가이드">📄</button>
+
+<!-- 가이드 모달 -->
+<div class="guide-modal-overlay" id="guideModal">
+  <div class="guide-modal">
+    <div class="guide-modal-header">
+      <h2>🌳 진리의 나무 사용 가이드</h2>
+      <button class="guide-modal-close" onclick="document.getElementById('guideModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="guide-modal-body">
+
+      <div class="guide-section">
+        <h3>⚡ 기본 개념</h3>
+        <p>진리의 나무는 중앙(8,8)에서 시작해 연결된 칸을 확장하는 노드 배분 시스템이에요.</p>
+        <ul>
+          <li>총 <strong style="color:var(--gold)">포인트 수</strong>만큼 노드를 활성화할 수 있어요</li>
+          <li>반드시 <strong style="color:var(--active-color)">연결된 칸만</strong> 활성화 가능해요</li>
+          <li>중앙 노드(8,8)는 고정이며 포인트 소모 없이 항상 활성화돼요</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h3>🔢 포인트 설정</h3>
+        <div class="guide-step">
+          <div class="guide-step-num">1</div>
+          <div class="guide-step-text">상단 숫자 입력란에 <strong style="color:var(--gold)">보유 포인트</strong> 입력</div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-step-num">2</div>
+          <div class="guide-step-text"><strong>포인트 설정</strong> 버튼 클릭 (또는 Enter)</div>
+        </div>
+        <div class="guide-tip">💡 포인트는 최대 289까지 설정 가능해요</div>
+      </div>
+
+      <div class="guide-section">
+        <h3>✋ 수동 모드</h3>
+        <ul>
+          <li><span style="color:#ffcc44">🟡 노란 테두리 칸</span> → 클릭하면 활성화</li>
+          <li><span style="color:var(--active-color)">🟢 초록 테두리 칸</span> → 클릭하면 비활성화</li>
+          <li>연결이 끊기는 칸은 비활성화 불가예요</li>
+        </ul>
+        <div class="guide-warn">⚠️ 포인트가 부족하면 새 칸을 활성화할 수 없어요</div>
+      </div>
+
+      <div class="guide-section">
+        <h3>🤖 자동 탐색 모드</h3>
+        <div class="guide-step">
+          <div class="guide-step-num">1</div>
+          <div class="guide-step-text">상단 탭에서 <strong>🤖 자동탐색</strong> 클릭</div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-step-num">2</div>
+          <div class="guide-step-text">목표 선택: 💰골드 / ⚡파워 / 🔬과학 / 🧬과학종합 / 🛡️던전 / 📉감소계</div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-step-num">3</div>
+          <div class="guide-step-text"><strong>🔍 최적 경로 탐색</strong> 버튼 클릭</div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-step-num">4</div>
+          <div class="guide-step-text">결과 확인 후 <strong style="color:var(--active-color)">✅ 이 경로 적용</strong> 클릭</div>
+        </div>
+        <div class="guide-tip">💡 현재 활성화된 노드를 기반으로 추가 최적화해요. 전체 초기화 후 탐색하면 완전히 새로운 경로가 나와요!</div>
+      </div>
+
+      <div class="guide-section">
+        <h3>📤 Export / Import</h3>
+        <ul>
+          <li><strong>Export</strong>: 현재 배치를 인게임 UID(*TT*...)로 변환 → 게임에 붙여넣기</li>
+          <li><strong>Import</strong>: Export로 생성한 UID를 불러와 배치 복원</li>
+        </ul>
+        <div class="guide-warn">⚠️ 인게임에서 직접 복사한 UID는 Import가 지원되지 않아요. Export로 생성한 UID만 Import 가능해요.</div>
+      </div>
+
+      <div class="guide-section">
+        <h3>🔍 효과 검색</h3>
+        <p>상단 검색창에 찾고 싶은 효과를 입력하면 해당 노드가 <span style="color:#ffee44">노란 외곽선</span>으로 강조돼요.</p>
+        <div class="guide-tip">💡 예: "골드" 입력 → 골드 관련 노드 전체 하이라이트</div>
+      </div>
+
+      <div class="guide-section">
+        <h3>🎨 색상 범례</h3>
+        <ul>
+          <li><span style="color:var(--active-color)">●</span> 초록 = 활성화된 노드</li>
+          <li><span style="color:#ffcc44">●</span> 노란 = 활성화 가능한 노드</li>
+          <li><span style="color:var(--optimal-color)">●</span> 파란 = 자동탐색 결과 노드</li>
+          <li><span style="color:var(--epic-color)">★</span> 보라 별 = 에픽 노드 (복합 효과)</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// 모달 바깥 클릭 시 닫기
+document.getElementById('guideModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('show');
+});
 </script>
 
 </body>
