@@ -366,17 +366,31 @@ window.openEditConfirm = (postId) => {
 
 // ── 이미지 업로드 ──
 window.uploadImage = async () => {
-  const file = document.getElementById('imageUpload').files[0];
-  if (!file) { showToast('파일을 선택해주세요.'); return; }
-  showToast('업로드 중...');
-  const r = ref(storage, `guide-images/${Date.now()}_${file.name}`);
-  await uploadBytes(r, file);
-  const url = await getDownloadURL(r);
-  if (window._quill) {
-    const range = window._quill.getSelection(true);
-    window._quill.insertEmbed(range ? range.index : window._quill.getLength(), 'image', url);
+  const files = document.getElementById('imageUpload').files;
+  if (!files.length) { showToast('파일을 선택해주세요.'); return; }
+  const storage = window._firebase?.storage;
+  if (!storage) { showToast('스토리지 연결 오류'); return; }
+  showToast(`업로드 중... (0/${files.length})`);
+  let uploaded = 0;
+  for (const file of files) {
+    try {
+      const storageRef = ref(storage, `guide-images/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      if (window._quill) {
+        const range = window._quill.getSelection(true);
+        const idx = range ? range.index : window._quill.getLength();
+        window._quill.insertEmbed(idx, 'image', url);
+        window._quill.setSelection(idx + 1);
+      }
+      uploaded++;
+      showToast(`업로드 중... (${uploaded}/${files.length})`);
+    } catch(e) {
+      showToast(`업로드 실패: ${file.name}`);
+    }
   }
-  showToast('이미지 삽입 완료!');
+  document.getElementById('imageUpload').value = '';
+  showToast(`✅ ${uploaded}장 삽입 완료!`);
 };
 
 window._firebase = { auth, db, storage };
@@ -765,7 +779,7 @@ a{text-decoration:none;color:inherit}
       <div class="field">
         <label>이미지 업로드</label>
         <div class="upload-row">
-          <input type="file" id="imageUpload" accept="image/*" style="flex:1;font-size:12px">
+          <input type="file" id="imageUpload" accept="image/*" multiple style="flex:1;font-size:12px">
           <button class="upload-btn" onclick="uploadImage()">업로드</button>
         </div>
         <div class="field-hint">업로드하면 본문에 자동 삽입돼요.</div>
