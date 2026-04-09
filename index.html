@@ -518,8 +518,8 @@ a{text-decoration:none;color:inherit}
 .post-detail-body .warn{background:var(--amber-light);border-left:3px solid #BA7517;padding:10px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:12px;font-size:13px;color:#854F0B}
 .post-detail-body .info-box{background:var(--surface2);border-left:3px solid var(--border2);padding:10px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:12px;font-size:13px;color:var(--text2)}
 .post-detail-body .img-wrap{margin:16px 0;text-align:center}
-.post-detail-body .img-wrap img{max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--border)}
-.post-detail-body .img-caption{font-size:12px;color:var(--text3);margin-top:6px}
+.post-detail-body .img-wrap img{max-width:100%;width:100%;height:auto;border-radius:var(--radius-sm);border:1px solid var(--border);object-fit:contain;display:block}
+.post-detail-body .img-caption{font-size:12px;color:var(--text3);margin-top:6px}.post-detail-body img{max-width:100%;width:100%;height:auto;object-fit:contain;border-radius:var(--radius-sm);border:1px solid var(--border);display:block;margin:8px 0}
 .post-actions{display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
 .post-action-btn{padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);font-size:12px;font-family:inherit;color:var(--text2);cursor:pointer;transition:all .15s}
 .post-action-btn:hover{border-color:var(--teal-border);color:var(--teal)}
@@ -534,7 +534,7 @@ a{text-decoration:none;color:inherit}
 /* Quill 에디터 */
 .ql-toolbar{border:1px solid var(--border2)!important;border-radius:var(--radius-sm) var(--radius-sm) 0 0!important;background:var(--surface2)!important;font-family:'Noto Sans KR',sans-serif!important}
 .ql-container{border:1px solid var(--border2)!important;border-top:none!important;border-radius:0 0 var(--radius-sm) var(--radius-sm)!important;font-family:'Noto Sans KR',sans-serif!important;font-size:14px!important;min-height:260px}
-.ql-editor{min-height:240px;line-height:1.8}
+.ql-editor{min-height:240px;line-height:1.8}.ql-editor img{max-width:100%;height:auto;border-radius:var(--radius-sm);display:block;margin:8px 0}
 .ql-editor p{margin-bottom:8px}
 .ql-editor.ql-blank::before{color:var(--text3)!important;font-style:normal!important}
 .field-hint{font-size:11px;color:var(--text3);margin-top:4px}
