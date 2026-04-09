@@ -545,9 +545,9 @@
           <button class="goal-btn selected" data-goal="gold">💰 골드</button>
           <button class="goal-btn" data-goal="power">⚡ 파워</button>
           <button class="goal-btn" data-goal="science">🔬 과학</button>
-          <button class="goal-btn" data-goal="science2">🧬 과학종합</button>
+          <button class="goal-btn" data-goal="science2">🧬 (메인)과학종합</button>
           <button class="goal-btn" data-goal="combat">🛡️ 던전</button>
-          <button class="goal-btn" data-goal="reduce">📉 감소계</button>
+          <button class="goal-btn" data-goal="reduce">📉 1회용 비용감소</button>
         </div>
         <button class="btn primary" id="search-btn" style="width:100%;margin-top:4px">🔍 최적 경로 탐색</button>
         <div class="progress-bar" id="progress-bar">
@@ -1406,7 +1406,7 @@ document.getElementById('search-btn').addEventListener('click', async ()=>{
   pendingOptimal=result.act;
 
   const {mul,add}=calcSummary(result.act);
-  const goalLabels={gold:'💰 골드',power:'⚡ 파워',science:'🔬 과학',science2:'🧬 과학종합',combat:'🛡️ 던전',reduce:'📉 감소계'};
+  const goalLabels={gold:'💰 골드',power:'⚡ 파워',science:'🔬 과학',science2:'🧬 (메인)과학종합',combat:'🛡️ 던전',reduce:'📉 1회용 비용감소'};
 
   // 목표별 핵심 수치 표시
   const lines=[];
@@ -1770,7 +1770,7 @@ refresh();
         </div>
         <div class="guide-step">
           <div class="guide-step-num">2</div>
-          <div class="guide-step-text">목표 선택: 💰골드 / ⚡파워 / 🔬과학 / 🧬과학종합 / 🛡️던전 / 📉감소계</div>
+          <div class="guide-step-text">목표 선택: 💰골드 / ⚡파워 / 🔬과학 / 🧬(메인)과학종합 / 🛡️던전 / 📉1회용 비용감소</div>
         </div>
         <div class="guide-step">
           <div class="guide-step-num">3</div>
