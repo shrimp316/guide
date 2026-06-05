@@ -647,6 +647,7 @@ a{text-decoration:none;color:inherit}
         <div class="nav-item" data-page="guide-dive"            onclick="navigate('guide-dive')"><span class="nav-icon">🤿</span> 다이브</div>
         <div class="nav-item" data-page="guide-beast-guide"     onclick="navigate('guide-beast-guide')"><span class="nav-icon">🐉</span> 신수</div>
         <div class="nav-item" data-page="guide-dimension-guide" onclick="navigate('guide-dimension-guide')"><span class="nav-icon">🔭</span> 차원탐사</div>
+        <div class="nav-item" data-page="guide-dimension-train" onclick="navigate('guide-dimension-train')"><span class="nav-icon">🚂</span> 차원열차</div>
         <div class="nav-item" data-page="guide-amounts" onclick="navigate('guide-amounts')"><span class="nav-icon"📖></span>수치 정보</div>
       </div>
       <div class="nav-divider"></div>
@@ -827,14 +828,16 @@ const CARDS = [
   { id:10, name:"다이브",                 desc:"다이브 공략",               icon:"🤿", iconClass:"ic-blue",   tags:["guide"], section:"strategy", page:"guide-dive" },
   { id:11, name:"신수 공략",              desc:"신수 공략집",               icon:"🐉", iconClass:"ic-teal",   tags:["guide"], section:"strategy", page:"guide-beast-guide" },
   { id:12, name:"차원탐사 공략",          desc:"차원탐사 공략집",           icon:"🔭", iconClass:"ic-purple", tags:["guide"], section:"strategy", page:"guide-dimension-guide" },
-  { id:13, name:"득도·승천 계산기",       desc:"득도 승천 계산기",          icon:"⚡", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-ascension" },
-  { id:14, name:"제련 계산기",            desc:"재화별 제련 비용 계산",     icon:"🔨", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-forge" },
-  { id:15, name:"신수 계산기",            desc:"신수 각성·폭주 비용 계산",  icon:"🧮", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-beast-cal" },
-  { id:16, name:"차원탐사 기댓값",        desc:"차원탐사 기댓값 계산기",    icon:"🎲", iconClass:"ic-purple", tags:["cal"],   section:"cal",      page:"calc-dimension-ev" },
-  { id:17, name:"진리의 길",              desc:"최적경로 찾기",             icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     page:"tool-path" },
-  { id:18, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과",  icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     page:"tool-tree" },
-  { id:19, name:"과금내역 확인",          desc:"과금내역 확인 (구글)",      icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     page:null, url:"https://docs.google.com/", external:true },
-  { id:20, name:"건의게시판",             desc:"게시판 추가 건의 / 공략 요청", icon:"📬", iconClass:"ic-purple", tags:["community"], section:"community", page:"board-suggest" },
+  { id:13, name:"차원열차 공략",              desc:"차원열차 공략집",               icon:"🚂", iconClass:"ic-teal",   tags:["guide"], section:"strategy", page:"guide-dimension-train" },
+  { id:14, name:"수치 정보",              desc:"수치 정보집",               icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"strategy", page:"guide-amounts" },
+  { id:15, name:"득도·승천 계산기",       desc:"득도 승천 계산기",          icon:"⚡", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-ascension" },
+  { id:16, name:"제련 계산기",            desc:"재화별 제련 비용 계산",     icon:"🔨", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-forge" },
+  { id:17, name:"신수 계산기",            desc:"신수 각성·폭주 비용 계산",  icon:"🧮", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-beast-cal" },
+  { id:18, name:"차원탐사 기댓값",        desc:"차원탐사 기댓값 계산기",    icon:"🎲", iconClass:"ic-purple", tags:["cal"],   section:"cal",      page:"calc-dimension-ev" },
+  { id:19, name:"진리의 길",              desc:"최적경로 찾기",             icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     page:"tool-path" },
+  { id:20, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과",  icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     page:"tool-tree" },
+  { id:21, name:"과금내역 확인",          desc:"과금내역 확인 (구글)",      icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     page:null, url:"https://docs.google.com/", external:true },
+  { id:22, name:"건의게시판",             desc:"게시판 추가 건의 / 공략 요청", icon:"📬", iconClass:"ic-purple", tags:["community"], section:"community", page:"board-suggest" },
 ];
 
 const IFRAME_PAGES = {
@@ -857,6 +860,8 @@ window.GUIDES = {
   'guide-dive':            { title:'다이브',       desc:'다이브 공략 게시판' },
   'guide-beast-guide':     { title:'신수 공략',    desc:'신수 공략 게시판' },
   'guide-dimension-guide': { title:'차원탐사 공략',desc:'차원탐사 공략 게시판' },
+  'guide-dimension-guide': { title:'차원열차 공략',desc:'차원열차 공략 게시판' },
+  'guide-dimension-guide': { title:'수치 정보',desc:'수지 정보게시판' },
   'board-suggest':         { title:'건의게시판',   desc:'게시판 추가 건의, 공략 요청 등 자유롭게 남겨주세요.' },
 };
 
@@ -864,6 +869,7 @@ window.GUIDES = {
 function navigate(page) {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
+
   history.pushState({ page }, '', page === 'home' ? location.pathname : location.pathname + '#' + page);
   showPage(page);
 }
