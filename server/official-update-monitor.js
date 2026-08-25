@@ -276,7 +276,40 @@ async function savePost(db, post, baseline) {
   });
 }
 
-export async function checkOfficialUpdates() {
+async function announceVersionOnce(db, posts, version) {
+  if (!version) return null;
+  const post = posts.find(item => item.latestVersion === version);
+  if (!post) throw new Error(`Official version ${version} was not found in the monitored posts`);
+
+  const postId = stablePostId(post.url);
+  const postSnapshot = await db.collection('officialPosts').doc(postId).get();
+  if (!postSnapshot.exists) throw new Error(`Official post was not stored before announcing version ${version}`);
+
+  const changeId = `${postId}_manual_${version.replaceAll('.', '_')}`;
+  const changeRef = db.collection('officialPostChanges').doc(changeId);
+  try {
+    await changeRef.create({
+      postId,
+      title: post.title,
+      url: post.url,
+      changeType: 'edited',
+      addedText: `Version ${version} 업데이트 노트가 공개되었습니다.`,
+      latestVersion: version,
+      revision: Number(postSnapshot.data()?.revision) || 1,
+      detectedAt: FieldValue.serverTimestamp(),
+      notificationSent: false,
+      manual: true,
+    });
+    return { version, created: true, changeId };
+  } catch (error) {
+    if (error?.code === 6 || error?.code === 'already-exists') {
+      return { version, created: false, changeId };
+    }
+    throw error;
+  }
+}
+
+export async function checkOfficialUpdates({ announceVersion } = {}) {
   const db = createDatabase();
   const lease = await acquireLease(db);
   if (!lease.acquired) return { ok: true, skipped: true, reason: 'already-running' };
@@ -293,13 +326,14 @@ export async function checkOfficialUpdates() {
       if (outcome === 'baseline') summary.unchanged += 1;
       else summary[outcome] += 1;
     }
+    const announcement = await announceVersionOnce(db, fetched.results, announceVersion);
     await lease.stateRef.set({
       initialized: true,
       runningUntil: Timestamp.fromMillis(0),
       lastCompletedAt: FieldValue.serverTimestamp(),
       lastRunSummary: summary,
     }, { merge: true });
-    return { ok: true, ...summary, failures: fetched.failures };
+    return { ok: true, ...summary, announcement, failures: fetched.failures };
   } catch (error) {
     await lease.stateRef.set({
       runningUntil: Timestamp.fromMillis(0),

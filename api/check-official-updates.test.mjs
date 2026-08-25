@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import handler from './check-official-updates.js';
+import handler, { manualAnnouncementAllowed } from './check-official-updates.js';
 
 function responseRecorder() {
   return {
@@ -34,4 +34,34 @@ test('cron endpoint rejects a missing or invalid bearer secret', async () => {
     if (previous === undefined) delete process.env.CRON_SECRET;
     else process.env.CRON_SECRET = previous;
   }
+});
+
+test('manual announcement rejects versions outside the one-time 2.5.8 allowlist', async () => {
+  const previous = process.env.CRON_SECRET;
+  process.env.CRON_SECRET = 'test-secret-value';
+  try {
+    for (const announceVersion of [
+      '2.5', '2.5.9', '02.5.8', '2.05.8', '2.5.08',
+      '22222222222222222222.5.8', '2.5.8<script>', ['2.5.8', '2.5.9'],
+    ]) {
+      const response = responseRecorder();
+      await handler({
+        method: 'GET',
+        headers: { authorization: 'Bearer test-secret-value' },
+        query: { announceVersion },
+      }, response);
+      assert.equal(response.statusCode, 400);
+      assert.equal(response.body.error, 'invalid-announce-version');
+    }
+  } finally {
+    if (previous === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = previous;
+  }
+});
+
+test('manual announcement allowlist contains only 2.5.8 while cron remains available', () => {
+  assert.equal(manualAnnouncementAllowed(undefined), true);
+  assert.equal(manualAnnouncementAllowed('2.5.8'), true);
+  assert.equal(manualAnnouncementAllowed('2.5.9'), false);
+  assert.equal(manualAnnouncementAllowed('02.5.8'), false);
 });

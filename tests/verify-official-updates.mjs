@@ -28,12 +28,15 @@ for (const collectionName of ['officialPosts', 'officialPostChanges']) {
 
 assert.match(api, /timingSafeEqual/, 'cron secret comparison must be timing safe');
 assert.match(api, /process\.env\.CRON_SECRET/, 'cron endpoint does not require CRON_SECRET');
+assert.match(api, /version === undefined \|\| version === '2\.5\.8'/, 'manual announcement is not restricted to 2.5.8');
 for (const name of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']) {
   assert.ok(monitor.includes(`requiredEnvironment('${name}')`), `${name} is not required by the server`);
 }
 assert.match(monitor, /changeType: 'new'/, 'new-post change documents are missing');
 assert.match(monitor, /changeType: 'edited'/, 'edited-post change documents are missing');
 assert.match(monitor, /notificationSent: false/, 'notification handoff state is missing');
+assert.match(monitor, /_manual_\$\{version\.replaceAll\('\.', '_'\)\}/, 'manual announcement does not have a deterministic ID');
+assert.match(monitor, /Version \$\{version\} 업데이트 노트가 공개되었습니다\./, 'manual announcement copy is missing');
 assert.match(monitor, /baseline: state\.initialized !== true/, 'first-run baseline guard is missing');
 assert.match(monitor, /parseBlogFeed\(await fetchHtml\(BLOG_FEED_URL\)\)/, 'canonical RSS links are not used for discovery');
 const editedChange = monitor.slice(Math.max(0, monitor.indexOf("changeType: 'edited'") - 600), monitor.indexOf("changeType: 'edited'") + 100);
