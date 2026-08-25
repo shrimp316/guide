@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync } from 'node:crypto';
 import test from 'node:test';
-import { normalizePrivateKey, parseBlogFeed, parsePostPage } from './official-update-monitor.js';
+import { fetchHtml, normalizePrivateKey, parseBlogFeed, parsePostPage } from './official-update-monitor.js';
 
 test('RSS feed keeps canonical Korean post links and rejects the post hub', () => {
   const posts = parseBlogFeed(`
@@ -82,4 +82,23 @@ test('private key validation reports only safe shape diagnostics', () => {
     () => normalizePrivateKey('-----BEGIN PRIVATE KEY-----\\nabc123\\n-----END PRIVATE KEY-----'),
     error => error.safeDetail === 'firebase-private-key:invalid-base64-body',
   );
+});
+
+test('official fetch retries a transient response body failure', async () => {
+  const originalFetch = globalThis.fetch;
+  let attempts = 0;
+  globalThis.fetch = async () => ({
+    ok: true,
+    async text() {
+      attempts += 1;
+      if (attempts === 1) throw new Error('transient body failure');
+      return '<html>complete</html>';
+    },
+  });
+  try {
+    assert.equal(await fetchHtml('https://www.seasoninggames.com/ko/post/test'), '<html>complete</html>');
+    assert.equal(attempts, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

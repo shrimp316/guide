@@ -8,6 +8,8 @@ const BLOG_URL = 'https://www.seasoninggames.com/ko/blog';
 const BLOG_FEED_URL = 'https://www.seasoninggames.com/blog-feed.xml';
 const OFFICIAL_ORIGIN = new URL(BLOG_URL).origin;
 const FETCH_TIMEOUT_MS = 20_000;
+const FETCH_ATTEMPTS = 3;
+const FETCH_CONCURRENCY = 2;
 const RUN_LEASE_MS = 5 * 60_000;
 const MAX_CONTENT_LENGTH = 500_000;
 const MIN_CONTENT_LENGTH = 80;
@@ -89,17 +91,28 @@ function createDatabase() {
   return getFirestore(app);
 }
 
-async function fetchHtml(url) {
-  const response = await fetch(url, {
-    headers: {
-      accept: 'application/rss+xml,application/xml;q=0.9,text/html;q=0.8,application/xhtml+xml;q=0.8',
-      'user-agent': 'BrickIncGuide-OfficialUpdateMonitor/1.0',
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!response.ok) throw new Error(`Official site returned HTTP ${response.status}`);
-  return response.text();
+export async function fetchHtml(url) {
+  let lastError;
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          accept: 'application/rss+xml,application/xml;q=0.9,text/html;q=0.8,application/xhtml+xml;q=0.8',
+          'user-agent': 'BrickIncGuide-OfficialUpdateMonitor/1.0',
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (response.ok) return await response.text();
+      lastError = new Error(`Official site returned HTTP ${response.status}`);
+      if (response.status !== 429 && response.status < 500) throw lastError;
+    } catch (error) {
+      lastError = error;
+      if (attempt === FETCH_ATTEMPTS) throw error;
+    }
+    await new Promise(resolve => setTimeout(resolve, attempt * 300));
+  }
+  throw lastError;
 }
 
 function normalizePostUrl(href) {
@@ -215,7 +228,7 @@ async function fetchPosts(listing) {
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, queue.length) }, worker));
   return { results, failures };
 }
 
