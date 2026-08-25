@@ -12,600 +12,13 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
-
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
-  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
-         getDocs, query, where, orderBy, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { getStorage, ref, uploadBytes, getDownloadURL }
-  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
-
-const app = initializeApp({
-  apiKey: "AIzaSyBSxJKvyrMl18t2sv47o6HjlWiY7IsSoRw",
-  authDomain: "brick-guide.firebaseapp.com",
-  projectId: "brick-guide",
-  storageBucket: "brick-guide.firebasestorage.app",
-  messagingSenderId: "813833706997",
-  appId: "1:813833706997:web:feb3bbbc7669191fbd94bc"
-});
-
-const auth = getAuth(app);
-const db   = getFirestore(app);
-const storage = getStorage(app);
-const provider = new GoogleAuthProvider();
-let currentUser = null;
-let isAdmin = false;
-
-// ── 비밀번호 해시 (SHA-256) ──
-async function hashPw(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-// ── 인증 상태 ──
-async function checkAdmin(user) {
-  if (!user) return false;
-  try {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    return snap.exists() && snap.data()?.role === 'admin';
-  } catch { return false; }
-}
-
-onAuthStateChanged(auth, async (user) => {
-  // 리다이렉트 로그인 결과 처리
-  if (!user) {
-    try {
-      const result = await getRedirectResult(auth);
-      if (result?.user) {
-        currentUser = result.user;
-        isAdmin = await checkAdmin(currentUser);
-        updateAuthUI();
-        showToast('로그인 완료!');
-        if (window._currentGuide) loadBoard(window._currentGuide);
-        return;
-      }
-    } catch(e) {
-      if (e.code !== 'auth/no-auth-event') {
-        showToast('로그인 오류: ' + e.message);
-      }
-    }
-  }
-  currentUser = user;
-  isAdmin = await checkAdmin(user);
-  updateAuthUI();
-  if (window._currentGuide) loadBoard(window._currentGuide);
-});
-
-function updateAuthUI() {
-  const btn      = document.getElementById('authBtn');
-  const userInfo = document.getElementById('userInfo');
-  if (currentUser) {
-    btn.textContent = '로그아웃';
-    btn.onclick = () => signOut(auth);
-    userInfo.textContent = currentUser.displayName || currentUser.email;
-    userInfo.style.display = 'block';
-  } else {
-    btn.textContent = 'Google 로그인';
-    btn.onclick = () => (() => {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      if (isMobile) {
-        signInWithRedirect(auth, provider);
-      } else {
-        signInWithPopup(auth, provider).catch(e => showToast('로그인 실패: ' + e.message));
-      }
-    })();
-    userInfo.style.display = 'none';
-  }
-}
-
-// ── 게시판 로드 ──
-window.loadBoard = async (category) => {
-  window._currentGuide = category;
-  const meta = window.GUIDES[category];
-  if (!meta) return;
-
-  document.getElementById('guideTitle').textContent = meta.title;
-  document.getElementById('guideDesc').textContent  = meta.desc;
-  document.getElementById('boardList').innerHTML =
-    '<p style="color:var(--text3);font-size:13px;padding:24px 0">불러오는 중...</p>';
-
-  const q = query(
-    collection(db, 'posts'),
-    where('category', '==', category),
-    orderBy('createdAt', 'desc')
-  );
-  const snap = await getDocs(q);
-  const posts = [];
-  snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
-
-  renderBoard(posts, category);
-};
-
-function renderBoard(posts, category) {
-  const list = document.getElementById('boardList');
-  const isSuggest = category === 'board-suggest';
-
-  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-    <button class="write-btn" onclick="window.openWriteModal('${category}')">✏ ${isSuggest ? '건의하기' : '글 작성'}</button>
-  </div>`;
-
-  if (posts.length === 0) {
-    html += `<div class="empty-board">${isSuggest ? '아직 건의 글이 없어요. 자유롭게 남겨주세요!' : '아직 작성된 글이 없어요. 첫 번째 공략을 작성해보세요!'}</div>`;
-  } else {
-    posts.forEach(post => {
-      const date = post.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '';
-      const done = post.done === true;
-      html += `
-        <div class="post-card${done ? ' done' : ''}" onclick="window.openPost('${post.id}')">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <div class="post-card-title" style="margin-bottom:0;flex:1">${escHtml(post.title)}</div>
-            ${isSuggest ? `<span class="${done ? 'badge-done' : 'badge-pending'}">${done ? '✓ 완료' : '대기중'}</span>` : ''}
-          </div>
-          <div class="post-card-meta">
-            <span>${escHtml(post.authorName)}${post.isAdmin ? ' <span class="admin-badge">✦ 운영자</span>' : ''}</span>
-            <span>${date}</span>
-          </div>
-        </div>`;
-    });
-  }
-  list.innerHTML = html;
-}
-
-// ── 글 상세 보기 ──
-window.openPost = async (postId) => {
-  const snap = await getDoc(doc(db, 'posts', postId));
-  if (!snap.exists()) { showToast('글을 찾을 수 없어요.'); return; }
-  const post = { id: snap.id, ...snap.data() };
-
-  const canEdit = isAdmin || (currentUser && currentUser.email === post.authorEmail);
-  const date = post.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '';
-
-  document.getElementById('postModalTitle').textContent  = post.title;
-  const adminBadge = post.isAdmin ? ' <span class="admin-badge">✦ 운영자</span>' : '';
-  document.getElementById('postModalMeta').innerHTML = `${escHtml(post.authorName)}${adminBadge} · ${date}`;
-  document.getElementById('postModalBody').innerHTML     = post.body;
-  const isSuggest = post.category === 'board-suggest';
-  const doneBtn = (isSuggest && isAdmin)
-    ? `<button class="admin-done-btn${post.done ? ' undo' : ''}" onclick="window.toggleDone('${post.id}', ${!post.done})">
-        ${post.done ? '↩ 완료 취소' : '✓ 완료 표시'}
-       </button>`
-    : '';
-  const isAnon = !post.authorEmail;
-  document.getElementById('postModalActions').innerHTML = canEdit
-    ? `${doneBtn}
-       <button class="post-action-btn" onclick="window.openEditModal('${post.id}')">수정</button>
-       <button class="post-action-btn danger" onclick="window.deletePost('${post.id}')">삭제</button>`
-    : isAnon
-    ? `${doneBtn}
-       <button class="post-action-btn" onclick="window.openEditConfirm('${post.id}')">수정</button>
-       <button class="post-action-btn danger" onclick="window.openDeleteConfirm('${post.id}')">삭제</button>`
-    : `${doneBtn}`;
-
-  document.getElementById('postModal').classList.add('show');
-};
-
-window.closePostModal = () => document.getElementById('postModal').classList.remove('show');
-
-// ── 글쓰기 모달 ──
-window.openWriteModal = (category) => {
-  document.getElementById('writeModalTitle').textContent = '글 작성';
-  document.getElementById('writePostId').value    = '';
-  document.getElementById('writeCategory').value  = category;
-  document.getElementById('writeNickname').value  = currentUser?.displayName || '';
-  document.getElementById('writePassword').value  = '';
-  document.getElementById('writeTitleInput').value = '';
-  document.getElementById('writePwRow').style.display = currentUser ? 'none' : '';
-  document.getElementById('writeNicknameRow').style.display = currentUser ? 'none' : '';
-  document.getElementById('writeModal').classList.add('show');
-  // Quill 초기화 — 모달이 DOM에 보인 뒤 실행
-  requestAnimationFrame(() => {
-    if (!window._quill) {
-      window._quill = new Quill('#quillEditor', {
-        theme: 'snow',
-        placeholder: '공략 내용을 입력하세요...',
-        modules: {
-          toolbar: [
-            [{ header: [2, 3, false] }],
-            ['bold', 'italic', 'underline'],
-            [{ color: [] }],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            ['blockquote'],
-            ['link'],
-            ['clean']
-          ]
-        }
-      });
-    }
-    window._quill.setContents([]);
-    window._quill.enable(true);
-  });
-};
-
-window.closeWriteModal = () => {
-  document.getElementById('writeModal').classList.remove('show');
-};
-
-window.openEditModal = async (postId) => {
-  const snap = await getDoc(doc(db, 'posts', postId));
-  if (!snap.exists()) return;
-  const post = snap.data();
-  document.getElementById('writeModalTitle').textContent = '글 수정';
-  document.getElementById('writePostId').value    = postId;
-  document.getElementById('writeCategory').value  = post.category;
-  document.getElementById('writeNickname').value  = post.authorName;
-  document.getElementById('writePassword').value  = '';
-  document.getElementById('writeTitleInput').value = post.title;
-  document.getElementById('writePwRow').style.display = (!currentUser || (!isAdmin && currentUser.email !== post.authorEmail)) ? '' : 'none';
-  document.getElementById('writeNicknameRow').style.display = 'none';
-  document.getElementById('writeModal').classList.add('show');
-  document.getElementById('postModal').classList.remove('show');
-  const bodyContent = post.body || '';
-  requestAnimationFrame(() => {
-    if (!window._quill) {
-      window._quill = new Quill('#quillEditor', {
-        theme: 'snow',
-        placeholder: '공략 내용을 입력하세요...',
-        modules: {
-          toolbar: [
-            [{ header: [2, 3, false] }],
-            ['bold', 'italic', 'underline'],
-            [{ color: [] }],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            ['blockquote'],
-            ['link'],
-            ['clean']
-          ]
-        }
-      });
-    }
-    window._quill.root.innerHTML = bodyContent;
-    window._quill.enable(true);
-  });
-};
-
-// ── 글 저장 ──
-window.submitPost = async () => {
-  const postId   = document.getElementById('writePostId').value;
-  const category = document.getElementById('writeCategory').value;
-  const title    = document.getElementById('writeTitleInput').value.trim();
-  const body     = window._quill ? window._quill.root.innerHTML.trim() : '';
-  const nickname = currentUser
-    ? (currentUser.displayName || currentUser.email)
-    : document.getElementById('writeNickname').value.trim();
-  const password = document.getElementById('writePassword').value;
-
-  if (!title) { showToast('제목을 입력해주세요.'); return; }
-  if (!body)  { showToast('내용을 입력해주세요.'); return; }
-  if (!currentUser && !nickname) { showToast('닉네임을 입력해주세요.'); return; }
-  if (!currentUser && !password) { showToast('비밀번호를 입력해주세요.'); return; }
-
-  const data = {
-    category, title, body,
-    authorName:  nickname,
-    authorEmail: currentUser?.email || null,
-    isAdmin:     isAdmin,
-    updatedAt:   serverTimestamp(),
-  };
-
-  if (postId) {
-    // 수정 — 비로그인이면 비밀번호 확인
-    if (!currentUser || (!isAdmin && currentUser.email !== (await getDoc(doc(db,'posts',postId))).data().authorEmail)) {
-      const snap = await getDoc(doc(db, 'posts', postId));
-      const storedHash = snap.data().passwordHash;
-      const inputHash  = await hashPw(password);
-      if (storedHash !== inputHash) { showToast('비밀번호가 틀렸어요.'); return; }
-    }
-    await updateDoc(doc(db, 'posts', postId), data);
-    showToast('수정 완료!');
-  } else {
-    // 새 글
-    if (!currentUser) data.passwordHash = await hashPw(password);
-    data.createdAt = serverTimestamp();
-    await addDoc(collection(db, 'posts'), data);
-    showToast('게시 완료!');
-  }
-
-  closeWriteModal();
-  loadBoard(category);
-};
-
-// ── 글 삭제 ──
-window.toggleDone = async (postId, done) => {
-  const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-  const db = window._firebase?.db;
-  if (!db) return;
-  await updateDoc(doc(db, 'posts', postId), { done });
-  showToast(done ? '✓ 완료 표시했어요!' : '완료 취소했어요.');
-  closePostModal();
-  if (window._currentGuide) loadBoard(window._currentGuide);
-};
-
-window.deletePost = async (postId) => {
-  if (!confirm('정말 삭제할까요?')) return;
-  await deleteDoc(doc(db, 'posts', postId));
-  showToast('삭제 완료');
-  closePostModal();
-  if (window._currentGuide) loadBoard(window._currentGuide);
-};
-
-// 비로그인 삭제 확인
-window.openDeleteConfirm = (postId) => {
-  const pw = prompt('비밀번호를 입력하세요:');
-  if (!pw) return;
-  (async () => {
-    const snap = await getDoc(doc(db, 'posts', postId));
-    if (!snap.exists()) return;
-    const hash = await hashPw(pw);
-    if (hash !== snap.data().passwordHash) { showToast('비밀번호가 틀렸어요.'); return; }
-    await deleteDoc(doc(db, 'posts', postId));
-    showToast('삭제 완료');
-    closePostModal();
-    if (window._currentGuide) loadBoard(window._currentGuide);
-  })();
-};
-
-// 비로그인 수정 확인
-window.openEditConfirm = (postId) => {
-  const pw = prompt('비밀번호를 입력하세요:');
-  if (!pw) return;
-  (async () => {
-    const snap = await getDoc(doc(db, 'posts', postId));
-    if (!snap.exists()) return;
-    const hash = await hashPw(pw);
-    if (hash !== snap.data().passwordHash) { showToast('비밀번호가 틀렸어요.'); return; }
-    // 비밀번호 확인 후 수정 모달 열기
-    closePostModal();
-    await window.openEditModal(postId);
-  })();
-};
-
-// ── 이미지 업로드 ──
-window.uploadImage = async () => {
-  const files = document.getElementById('imageUpload').files;
-  if (!files.length) { showToast('파일을 선택해주세요.'); return; }
-  const storage = window._firebase?.storage;
-  if (!storage) { showToast('스토리지 연결 오류'); return; }
-  showToast(`업로드 중... (0/${files.length})`);
-  let uploaded = 0;
-  for (const file of files) {
-    try {
-      const storageRef = ref(storage, `guide-images/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      if (window._quill) {
-        const range = window._quill.getSelection(true);
-        const idx = range ? range.index : window._quill.getLength();
-        window._quill.insertEmbed(idx, 'image', url);
-        window._quill.setSelection(idx + 1);
-      }
-      uploaded++;
-      showToast(`업로드 중... (${uploaded}/${files.length})`);
-    } catch(e) {
-      showToast(`업로드 실패: ${file.name}`);
-    }
-  }
-  document.getElementById('imageUpload').value = '';
-  showToast(`✅ ${uploaded}장 삽입 완료!`);
-};
-
-window._firebase = { auth, db, storage };
-window._firebaseStorage = storage;
-</script>
-
-<style>
-:root {
-  --bg:#f5f4f0; --surface:#fff; --surface2:#f0efe9;
-  --border:#e2e0d8; --border2:#d0cec4;
-  --text:#1a1917; --text2:#6b6960; --text3:#9b998f;
-  --teal:#1D9E75; --teal-light:#E1F5EE; --teal-border:#5DCAA5;
-  --amber-light:#FAEEDA; --purple-light:#EEEDFE; --blue-light:#E6F1FB;
-  --sidebar-w:220px; --radius:10px; --radius-sm:6px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
-a{text-decoration:none;color:inherit}
-.app{display:flex;min-height:100vh}
-
-/* 사이드바 */
-.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s ease;display:flex;flex-direction:column}
-.sidebar-header{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
-.site-logo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.logo-icon{width:34px;height:34px;background:var(--text);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0;cursor:pointer}
-.site-name{font-size:14px;font-weight:700;line-height:1.2;cursor:pointer}
-.site-sub{font-size:11px;color:var(--text3)}
-.auth-area{display:flex;flex-direction:column;gap:6px}
-.user-info{font-size:11px;color:var(--text2);display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.auth-btn{padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);font-size:12px;font-family:inherit;color:var(--text2);cursor:pointer;transition:all .15s;text-align:center}
-.auth-btn:hover{border-color:var(--teal-border);color:var(--teal)}
-.nav{padding:10px 8px;flex:1}
-.nav-group{margin-bottom:4px}
-.nav-group-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.06em;padding:8px 8px 4px;text-transform:uppercase}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--radius-sm);font-size:13px;color:var(--text2);cursor:pointer;transition:background .15s,color .15s}
-.nav-item:hover{background:var(--surface2);color:var(--text)}
-.nav-item.active{background:var(--surface2);color:var(--text);font-weight:500}
-.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.nav-divider{height:1px;background:var(--border);margin:8px}
-.nav-ext{margin-left:auto;font-size:10px;color:var(--text3)}
-
-/* 메인 */
-.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh}
-.view{display:none;padding:28px 28px 60px;max-width:960px}
-.view.active{display:block}
-.view-iframe{display:none;padding:0;max-width:none}
-.view-iframe.active{display:flex;flex-direction:column;height:100vh}
-.iframe-topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.back-btn{background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .15s}
-.back-btn:hover{border-color:var(--teal-border);color:var(--teal)}
-.iframe-title{font-size:14px;font-weight:500}
-.content-iframe{flex:1;border:none;width:100%}
-
-/* 홈 */
-.update-banner{display:flex;align-items:center;gap:10px;background:var(--teal-light);border:1px solid var(--teal-border);border-radius:var(--radius);padding:11px 16px;margin-bottom:24px;font-size:13px;color:#0F6E56}
-.banner-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.banner-text{flex:1}
-.banner-link{font-size:12px;color:var(--teal);font-weight:500;white-space:nowrap}
-.banner-link:hover{text-decoration:underline}
-.search-wrap{position:relative;margin-bottom:18px}
-.search-input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;transition:border .15s}
-.search-input:focus{border-color:var(--teal-border)}
-.search-input::placeholder{color:var(--text3)}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
-.tag-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
-.tag{padding:4px 12px;border-radius:99px;border:1px solid var(--border2);font-size:12px;color:var(--text2);background:var(--surface);cursor:pointer;transition:all .15s;font-family:inherit}
-.tag:hover{border-color:var(--teal-border);color:var(--teal)}
-.tag.active{background:var(--teal-light);border-color:var(--teal-border);color:#0F6E56;font-weight:500}
-.section{margin-bottom:32px}
-.section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.section-title{font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.05em;text-transform:uppercase}
-.section-line{flex:1;height:1px;background:var(--border)}
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,transform .15s,box-shadow .15s;position:relative}
-.card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
-.card.pinned{border-color:var(--teal-border)}
-.card-pin{position:absolute;top:10px;right:10px;font-size:10px;background:var(--teal-light);color:#0F6E56;padding:2px 7px;border-radius:99px;font-weight:500}
-.card-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:4px}
-.ic-teal{background:var(--teal-light)}.ic-amber{background:var(--amber-light)}
-.ic-purple{background:var(--purple-light)}.ic-blue{background:var(--blue-light)}.ic-gray{background:var(--surface2)}
-.card-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.3}
-.card-desc{font-size:11px;color:var(--text2);line-height:1.4}
-.card-footer{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
-.card-tag{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--surface2);color:var(--text3);font-family:'DM Mono',monospace}
-.empty-msg{display:none;text-align:center;padding:48px 0;color:var(--text3);font-size:13px}
-
-/* 가이드/게시판 뷰 */
-.guide-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}
-.guide-title{font-size:22px;font-weight:700;margin-bottom:4px}
-.guide-desc{font-size:13px;color:var(--text2)}
-.write-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;flex-shrink:0;transition:background .15s}
-.write-btn:hover{background:#0F6E56}
-
-/* 게시글 목록 */
-.post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-.post-card:hover{border-color:var(--border2);box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.post-card-title{font-size:14px;font-weight:500;margin-bottom:6px;color:var(--text)}
-.post-card-meta{display:flex;gap:12px;font-size:12px;color:var(--text3)}
-.empty-board{text-align:center;padding:48px 0;color:var(--text3);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
-
-/* 모달 공통 */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
-.modal-overlay.show{display:flex}
-.modal{background:var(--surface);border-radius:var(--radius);width:100%;max-width:640px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;z-index:1}
-.modal-title{font-size:15px;font-weight:700}
-.modal-close{background:none;border:none;font-size:18px;color:var(--text3);cursor:pointer;padding:4px;line-height:1}
-.modal-body{padding:20px}
-
-/* 글 상세 */
-.post-detail-title{font-size:20px;font-weight:700;margin-bottom:6px}
-.post-detail-meta{font-size:12px;color:var(--text3);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
-.post-detail-body{font-size:14px;line-height:1.8}
-.post-detail-body h2{font-size:17px;font-weight:700;margin:24px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.post-detail-body h3{font-size:15px;font-weight:500;margin:18px 0 8px}
-.post-detail-body p{margin-bottom:12px}
-.post-detail-body ul,.post-detail-body ol{padding-left:20px;margin-bottom:12px}
-.post-detail-body li{margin-bottom:4px}
-.post-detail-body table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;display:block;overflow-x:auto}
-.post-detail-body th{background:var(--surface2);padding:8px 12px;text-align:left;border:1px solid var(--border);font-weight:500;white-space:nowrap}
-.post-detail-body td{padding:8px 12px;border:1px solid var(--border)}
-.post-detail-body tr:nth-child(even) td{background:var(--surface2)}
-.post-detail-body .tip{background:var(--teal-light);border-left:3px solid var(--teal);padding:10px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:12px;font-size:13px;color:#0F6E56}
-.post-detail-body .warn{background:var(--amber-light);border-left:3px solid #BA7517;padding:10px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:12px;font-size:13px;color:#854F0B}
-.post-detail-body .info-box{background:var(--surface2);border-left:3px solid var(--border2);padding:10px 14px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:12px;font-size:13px;color:var(--text2)}
-.post-detail-body .img-wrap{margin:16px 0;text-align:center}
-.post-detail-body .img-wrap img{max-width:100%;width:100%;height:auto;border-radius:var(--radius-sm);border:1px solid var(--border);object-fit:contain;display:block}
-.post-detail-body .img-caption{font-size:12px;color:var(--text3);margin-top:6px}.post-detail-body img{max-width:100%;width:100%;height:auto;object-fit:contain;border-radius:var(--radius-sm);border:1px solid var(--border);display:block;margin:8px 0}
-.post-actions{display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
-.post-action-btn{padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);font-size:12px;font-family:inherit;color:var(--text2);cursor:pointer;transition:all .15s}
-.post-action-btn:hover{border-color:var(--teal-border);color:var(--teal)}
-.post-action-btn.danger:hover{border-color:#E64A19;color:#E64A19}
-
-/* 글쓰기 */
-.field{margin-bottom:14px}
-.field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
-.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;color:var(--text);outline:none;transition:border .15s;background:var(--surface)}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal-border)}
-.field textarea{min-height:260px;resize:vertical;font-family:'DM Mono',monospace;line-height:1.6}
-/* Quill 에디터 */
-.ql-toolbar{border:1px solid var(--border2)!important;border-radius:var(--radius-sm) var(--radius-sm) 0 0!important;background:var(--surface2)!important;font-family:'Noto Sans KR',sans-serif!important}
-.ql-container{border:1px solid var(--border2)!important;border-top:none!important;border-radius:0 0 var(--radius-sm) var(--radius-sm)!important;font-family:'Noto Sans KR',sans-serif!important;font-size:14px!important;min-height:260px}
-.ql-editor{min-height:240px;line-height:1.8}.ql-editor img{max-width:100%;height:auto;border-radius:var(--radius-sm);display:block;margin:8px 0}
-.ql-editor p{margin-bottom:8px}
-.ql-editor.ql-blank::before{color:var(--text3)!important;font-style:normal!important}
-.field-hint{font-size:11px;color:var(--text3);margin-top:4px}
-.field-row{display:flex;gap:8px}
-.field-row .field{flex:1}
-.upload-row{display:flex;gap:8px;align-items:center}
-.upload-btn{padding:7px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);font-size:12px;font-family:inherit;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s}
-.upload-btn:hover{border-color:var(--teal-border);color:var(--teal)}
-.modal-footer{display:flex;gap:8px;padding:0 20px 20px}
-.btn-cancel{padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;color:var(--text2);cursor:pointer}
-.btn-submit{flex:1;padding:10px;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:inherit;font-weight:500;cursor:pointer}
-.btn-submit:hover{background:#0F6E56}
-
-/* Admin 뱃지 */
-.admin-badge {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; color: #BA7517; font-weight: 700;
-  animation: sparkle 1.5s ease-in-out infinite;
-}
-@keyframes sparkle {
-  0%,100% { opacity: 1; text-shadow: 0 0 4px #f59e0b; }
-  50% { opacity: 0.7; text-shadow: 0 0 10px #f59e0b, 0 0 20px #fbbf24; }
-}
-
-/* 건의 게시판 완료 배지 */
-.badge-done{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:500;border:1px solid #5DCAA5}
-.badge-pending{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:var(--amber-light);color:#854F0B;font-size:11px;font-weight:500;border:1px solid #BA7517}
-.post-card.done{opacity:.7}
-.post-card.done .post-card-title{text-decoration:line-through;color:var(--text3)}
-.admin-done-btn{padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--teal-border);background:var(--teal-light);color:#0F6E56;font-size:12px;font-family:inherit;cursor:pointer;transition:all .15s}
-.admin-done-btn:hover{background:var(--teal);color:#fff}
-.admin-done-btn.undo{border-color:var(--border2);background:var(--surface2);color:var(--text2)}
-.admin-done-btn.undo:hover{border-color:#E64A19;color:#E64A19}
-
-/* 토스트 */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1917;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:500;z-index:999;transition:transform .25s ease,opacity .25s ease;opacity:0;white-space:nowrap;pointer-events:none}
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-
-/* 인앱 브라우저 배너 */
-.inapp-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1917;color:#fff;padding:14px 16px;z-index:1000;text-align:center;font-size:13px;line-height:1.6}
-.inapp-banner.show{display:block}
-.inapp-banner-btn{display:inline-block;margin-top:8px;padding:8px 20px;background:var(--teal);color:#fff;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit}
-
-/* 인앱 브라우저 배너 */
-.inapp-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1917;color:#fff;padding:14px 16px;z-index:1000;text-align:center;font-size:13px;line-height:1.6}
-.inapp-banner.show{display:block}
-.inapp-banner-btn{display:inline-block;margin-top:8px;padding:8px 20px;background:var(--teal);color:#fff;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit}
-
-/* 모바일 */
-.mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);z-index:200;align-items:center;padding:0 16px;gap:12px}
-.hamburger{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text);padding:4px}
-.mobile-title{font-size:14px;font-weight:700;flex:1}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:99}
-.overlay.show{display:block}
-@media(max-width:720px){
-  .sidebar{transform:translateX(-100%)}
-  .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.12)}
-  .main{margin-left:0}
-  .view{padding:72px 16px 48px}
-  .mobile-header{display:flex}
-  .card-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
-  .modal-overlay{padding:0;align-items:flex-end}
-  .modal{border-radius:var(--radius) var(--radius) 0 0;max-height:92vh;overflow-y:auto}
-  .field-row{flex-direction:column}
-}
-</style>
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/index.css">
 </head>
 <body>
 
 <header class="mobile-header">
-  <button class="hamburger" id="menuBtn">☰</button>
+  <button class="hamburger" id="menuBtn" type="button" aria-label="메뉴 열기" aria-controls="sidebar" aria-expanded="false">☰</button>
   <span class="mobile-title" id="mobileTitle">벽돌주식회사</span>
 </header>
 <div class="overlay" id="overlay"></div>
@@ -614,9 +27,9 @@ a{text-decoration:none;color:inherit}
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="site-logo">
-        <div class="logo-icon" onclick="navigate('home')">🧱</div>
+        <button class="logo-icon" type="button" data-page="home" aria-label="홈으로 이동">🧱</button>
         <div>
-          <div class="site-name" onclick="navigate('home')">벽돌주식회사</div>
+          <div class="site-name"><button class="site-home-btn" type="button" data-page="home">벽돌주식회사</button></div>
           <div class="site-sub">통합 정보사이트</div>
         </div>
       </div>
@@ -627,100 +40,103 @@ a{text-decoration:none;color:inherit}
     </div>
     <nav class="nav">
       <div class="nav-group">
-        <div class="nav-item" data-page="home" onclick="navigate('home')"><span class="nav-icon">🏠</span> 홈</div>
-        <div class="nav-item" data-page="board-suggest" onclick="navigate('board-suggest')"><span class="nav-icon">📬</span> 건의게시판</div>
+        <button class="nav-item" data-page="home"><span class="nav-icon">🏠</span> 홈</button>
+        <button class="nav-item" data-page="board-suggest"><span class="nav-icon">📬</span> 건의게시판</button>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
         <div class="nav-group-label">가이드</div>
-        <div class="nav-item" data-page="guide-pre-god"    onclick="navigate('guide-pre-god')"><span class="nav-icon">📖</span> 신 이전</div>
-        <div class="nav-item" data-page="guide-god1-4"     onclick="navigate('guide-god1-4')"><span class="nav-icon">📖</span> 신1 ~ 신4</div>
-        <div class="nav-item" data-page="guide-god4-7"     onclick="navigate('guide-god4-7')"><span class="nav-icon">📖</span> 신4 ~ 신7</div>
-        <div class="nav-item" data-page="guide-god7-11"    onclick="navigate('guide-god7-11')"><span class="nav-icon">📖</span> 신7 ~ 신11</div>
-        <div class="nav-item" data-page="guide-god11-15"   onclick="navigate('guide-god11-15')"><span class="nav-icon">📖</span> 신11 ~ 신15</div>
-        <div class="nav-item" data-page="guide-super1-4"   onclick="navigate('guide-super1-4')"><span class="nav-icon">📖</span> 초월신1 ~ 4</div>
-        <div class="nav-item" data-page="guide-super4"     onclick="navigate('guide-super4')"><span class="nav-icon">📖</span> 초월신4 이후</div>
+        <button class="nav-item" data-page="guide-pre-god"><span class="nav-icon">📖</span> 신 이전</button>
+        <button class="nav-item" data-page="guide-god1-4"><span class="nav-icon">📖</span> 신1 ~ 신4</button>
+        <button class="nav-item" data-page="guide-god4-7"><span class="nav-icon">📖</span> 신4 ~ 신7</button>
+        <button class="nav-item" data-page="guide-god7-11"><span class="nav-icon">📖</span> 신7 ~ 신11</button>
+        <button class="nav-item" data-page="guide-god11-15"><span class="nav-icon">📖</span> 신11 ~ 신15</button>
+        <button class="nav-item" data-page="guide-super1-4"><span class="nav-icon">📖</span> 초월신1 ~ 4</button>
+        <button class="nav-item" data-page="guide-super4"><span class="nav-icon">📖</span> 초월신4 이후</button>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
         <div class="nav-group-label">공략</div>
-        <div class="nav-item" data-page="guide-dive"            onclick="navigate('guide-dive')"><span class="nav-icon">🤿</span> 다이브</div>
-        <div class="nav-item" data-page="guide-beast-guide"     onclick="navigate('guide-beast-guide')"><span class="nav-icon">🐉</span> 신수</div>
-        <div class="nav-item" data-page="guide-dimension-guide" onclick="navigate('guide-dimension-guide')"><span class="nav-icon">🔭</span> 차원탐사</div>
-        <div class="nav-item" data-page="guide-dimension-train" onclick="navigate('guide-dimension-train')"><span class="nav-icon">🚂</span> 차원열차</div>
-        <div class="nav-item" data-page="guide-amounts" onclick="navigate('guide-amounts')"><span class="nav-icon"📖></span>수치 정보</div>
+        <button class="nav-item" data-page="guide-dive"><span class="nav-icon">🤿</span> 다이브</button>
+        <button class="nav-item" data-page="guide-beast-guide"><span class="nav-icon">🐉</span> 신수</button>
+        <button class="nav-item" data-page="guide-dimension-guide"><span class="nav-icon">🔭</span> 차원탐사</button>
+        <button class="nav-item" data-page="guide-dimension-train"><span class="nav-icon">🚂</span> 차원열차</button>
+        <button class="nav-item" data-page="guide-amounts"><span class="nav-icon">📖</span> 수치 정보</button>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
         <div class="nav-group-label">계산기 / 도구</div>
-        <div class="nav-item" data-page="calc-ascension"    onclick="navigate('calc-ascension')"><span class="nav-icon">⚡</span> 득도·승천</div>
-        <div class="nav-item" data-page="calc-forge"        onclick="navigate('calc-forge')"><span class="nav-icon">🔨</span> 제련</div>
-        <div class="nav-item" data-page="calc-beast-cal"    onclick="navigate('calc-beast-cal')"><span class="nav-icon">🧮</span> 신수 계산기</div>
-        <div class="nav-item" data-page="calc-dimension-ev" onclick="navigate('calc-dimension-ev')"><span class="nav-icon">🎲</span> 차원탐사 기댓값</div>
-        <div class="nav-item" data-page="tool-path"         onclick="navigate('tool-path')"><span class="nav-icon">🗺️</span> 진리의 길</div>
-        <div class="nav-item" data-page="tool-tree"         onclick="navigate('tool-tree')"><span class="nav-icon">🌳</span> 진리의 나무</div>
+        <button class="nav-item" data-page="calc-ascension"><span class="nav-icon">⚡</span> 득도·승천</button>
+        <button class="nav-item" data-page="calc-forge"><span class="nav-icon">🔨</span> 제련</button>
+        <button class="nav-item" data-page="calc-beast-cal"><span class="nav-icon">🧮</span> 신수 계산기</button>
+        <button class="nav-item" data-page="calc-dimension-ev"><span class="nav-icon">🎲</span> 차원탐사 기댓값</button>
+        <button class="nav-item" data-page="tool-path"><span class="nav-icon">🗺️</span> 진리의 길</button>
+        <button class="nav-item" data-page="tool-tree"><span class="nav-icon">🌳</span> 진리의 나무</button>
       </div>
       <div class="nav-divider"></div>
       <div class="nav-group">
-        <div class="nav-item" onclick="window.open('https://www.seasoninggames.com/ko/blog','_blank')">
+        <button class="nav-item" data-external-url="https://www.seasoninggames.com/ko/blog">
           <span class="nav-icon">🌐</span> 공식 홈페이지 <span class="nav-ext">↗</span>
-        </div>
+        </button>
       </div>
     </nav>
   </aside>
 
   <main class="main">
 
-    <!-- 홈 -->
+    <!-- 홈 대시보드 -->
     <div class="view active" id="view-home">
-      <div class="update-banner">
-        <div class="banner-dot"></div>
-        <div class="banner-text" id="bannerText">최신 패치노트 확인 중...</div>
-        <a href="https://www.seasoninggames.com/ko/blog" target="_blank" class="banner-link">공식 사이트 →</a>
-      </div>
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" type="text" placeholder="이름, 설명, 태그로 검색..." id="searchInput">
-      </div>
-      <div class="tag-bar" id="tagBar">
-        <button class="tag active" data-tag="all">전체</button>
-        <button class="tag" data-tag="guide">#guide</button>
-        <button class="tag" data-tag="cal">#cal</button>
-        <button class="tag" data-tag="tool">#tool</button>
-        <button class="tag" data-tag="main">#main</button>
-      </div>
-      <div class="empty-msg" id="emptyMsg">검색 결과가 없습니다.</div>
-      <div class="section" id="section-pin">
-        <div class="section-header"><div class="section-title">고정됨</div><div class="section-line"></div></div>
-        <div class="card-grid" id="grid-pin"></div>
-      </div>
-      <div class="section" id="section-guide">
-        <div class="section-header"><div class="section-title">구간별 가이드</div><div class="section-line"></div></div>
-        <div class="card-grid" id="grid-guide"></div>
-      </div>
-      <div class="section" id="section-strategy">
-        <div class="section-header"><div class="section-title">공략집</div><div class="section-line"></div></div>
-        <div class="card-grid" id="grid-strategy"></div>
-      </div>
-      <div class="section" id="section-cal">
-        <div class="section-header"><div class="section-title">계산기</div><div class="section-line"></div></div>
-        <div class="card-grid" id="grid-cal"></div>
-      </div>
-      <div class="section" id="section-tool">
-        <div class="section-header"><div class="section-title">편의기능</div><div class="section-line"></div></div>
-        <div class="card-grid" id="grid-tool"></div>
-      </div>
-      <div class="section" id="section-community">
-        <div class="section-header"><div class="section-title">커뮤니티</div><div class="section-line"></div></div>
-        <div class="card-grid" id="grid-community"></div>
-      </div>
+      <section class="home-hero" aria-labelledby="homeTitle">
+        <div class="hero-bricks" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div class="hero-content">
+          <p class="hero-eyebrow">BRICK INC. GUIDE</p>
+          <h1 id="homeTitle">벽돌주식회사 게임 가이드</h1>
+          <p class="hero-desc">필요한 공략을 찾고, 자주 쓰는 계산기를 바로 실행하세요.</p>
+          <div class="search-wrap">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <label class="sr-only" for="searchInput">가이드 및 도구 통합 검색</label>
+            <input class="search-input" type="search" placeholder="가이드, 공략, 계산기 검색" id="searchInput" autocomplete="off" aria-controls="searchResults" aria-expanded="false">
+          </div>
+        </div>
+      </section>
+
+      <section class="search-results" id="searchResults" aria-labelledby="searchResultsTitle" hidden>
+        <div class="section-heading">
+          <h2 id="searchResultsTitle">검색 결과</h2>
+          <span class="section-kicker" id="searchResultCount" aria-live="polite"></span>
+        </div>
+        <div class="search-result-list" id="searchResultList"></div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="quickTitle">
+        <div class="section-heading">
+          <div><p class="section-kicker">QUICK ACCESS</p><h2 id="quickTitle">빠른 계산</h2></div>
+        </div>
+        <div class="quick-grid">
+          <button class="quick-action" type="button" data-page="calc-ascension"><span class="quick-icon quick-icon-gold" aria-hidden="true">◆</span><span><strong>득도·승천</strong><small>소모량 계산</small></span><span class="quick-arrow" aria-hidden="true">→</span></button>
+          <button class="quick-action" type="button" data-page="calc-dimension-ev"><span class="quick-icon quick-icon-violet" aria-hidden="true">◈</span><span><strong>차원탐사</strong><small>기대값 계산</small></span><span class="quick-arrow" aria-hidden="true">→</span></button>
+          <button class="quick-action" type="button" data-page="calc-forge"><span class="quick-icon quick-icon-red" aria-hidden="true">⚒</span><span><strong>제련</strong><small>강화 비용 계산</small></span><span class="quick-arrow" aria-hidden="true">→</span></button>
+          <button class="quick-action" type="button" data-page="calc-beast-cal"><span class="quick-icon quick-icon-green" aria-hidden="true">♞</span><span><strong>신수</strong><small>각성·육성 계산</small></span><span class="quick-arrow" aria-hidden="true">→</span></button>
+          <button class="quick-action" type="button" data-page="tool-path"><span class="quick-icon quick-icon-blue" aria-hidden="true">⌁</span><span><strong>진리의 길</strong><small>최적 경로 찾기</small></span><span class="quick-arrow" aria-hidden="true">→</span></button>
+          <button class="quick-action" type="button" data-page="tool-tree"><span class="quick-icon quick-icon-teal" aria-hidden="true">♧</span><span><strong>진리의 나무</strong><small>세팅과 누적 효과</small></span><span class="quick-arrow" aria-hidden="true">→</span></button>
+        </div>
+      </section>
+
+      <section class="dashboard-section" aria-labelledby="latestPostsTitle">
+        <div class="section-heading">
+          <div><p class="section-kicker">COMMUNITY</p><h2 id="latestPostsTitle">최신 글</h2></div>
+        </div>
+        <div class="latest-posts-preview" id="homeBoardPreview" aria-live="polite" aria-busy="true">
+          <p class="dashboard-status">최신 글을 불러오는 중입니다.</p>
+        </div>
+      </section>
     </div>
 
     <!-- 가이드/게시판 뷰 -->
     <div class="view" id="view-guide">
       <div class="guide-header">
         <div>
-          <div class="guide-title" id="guideTitle"></div>
+          <h2 class="guide-title" id="guideTitle"></h2>
           <div class="guide-desc" id="guideDesc"></div>
         </div>
       </div>
@@ -730,7 +146,7 @@ a{text-decoration:none;color:inherit}
     <!-- iframe 뷰 -->
     <div class="view-iframe" id="view-iframe">
       <div class="iframe-topbar">
-        <button class="back-btn" onclick="navigate('home')">← 홈으로</button>
+        <button class="back-btn" data-page="home">← 홈으로</button>
         <span class="iframe-title" id="iframeTitle"></span>
       </div>
       <iframe class="content-iframe" id="contentIframe" src="" title="콘텐츠" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
@@ -740,11 +156,11 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <!-- 글 상세 모달 -->
-<div class="modal-overlay" id="postModal">
-  <div class="modal">
+<div class="modal-overlay" id="postModal" role="dialog" aria-modal="true" aria-labelledby="postModalTitle" aria-hidden="true">
+  <div class="modal" tabindex="-1">
     <div class="modal-header">
-      <div class="modal-title" id="postModalTitle"></div>
-      <button class="modal-close" onclick="closePostModal()">✕</button>
+      <h2 class="modal-title" id="postModalTitle"></h2>
+      <button class="modal-close" data-board-action="close-post" aria-label="닫기">✕</button>
     </div>
     <div class="modal-body">
       <div class="post-detail-meta" id="postModalMeta"></div>
@@ -755,46 +171,46 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <!-- 글쓰기/수정 모달 -->
-<div class="modal-overlay" id="writeModal">
-  <div class="modal">
+<div class="modal-overlay" id="writeModal" role="dialog" aria-modal="true" aria-labelledby="writeModalTitle" aria-hidden="true">
+  <div class="modal" tabindex="-1">
     <div class="modal-header">
-      <div class="modal-title" id="writeModalTitle">글 작성</div>
-      <button class="modal-close" onclick="closeWriteModal()">✕</button>
+      <h2 class="modal-title" id="writeModalTitle">글 작성</h2>
+      <button class="modal-close" data-board-action="close-write" aria-label="닫기">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="writePostId">
       <input type="hidden" id="writeCategory">
       <div class="field-row" id="writeNicknameRow">
         <div class="field">
-          <label>닉네임</label>
+          <label for="writeNickname">닉네임</label>
           <input type="text" id="writeNickname" placeholder="표시될 이름">
         </div>
         <div class="field" id="writePwRow">
-          <label>비밀번호 <span style="color:var(--text3);font-weight:400">(수정·삭제용)</span></label>
+          <label for="writePassword">비밀번호 <span class="field-label-note">(수정·삭제용)</span></label>
           <input type="password" id="writePassword" placeholder="나중에 수정/삭제 시 필요">
         </div>
       </div>
       <div class="field">
-        <label>제목</label>
+        <label for="writeTitleInput">제목</label>
         <input type="text" id="writeTitleInput" placeholder="글 제목을 입력하세요">
       </div>
       <div class="field">
-        <label>이미지 업로드</label>
+        <label for="imageUpload">이미지 업로드</label>
         <div class="upload-row">
-          <input type="file" id="imageUpload" accept="image/*" multiple style="flex:1;font-size:12px">
-          <button class="upload-btn" onclick="uploadImage()">업로드</button>
+          <input class="image-upload-input" type="file" id="imageUpload" accept="image/*" multiple>
+          <button class="upload-btn" type="button" data-board-action="upload">업로드</button>
         </div>
         <div class="field-hint">업로드하면 본문에 자동 삽입돼요.</div>
       </div>
       <div class="field">
-        <label>본문</label>
+        <div class="field-label" id="writeBodyLabel">본문</div>
         <div id="quillEditor"></div>
         <div class="field-hint">툴바로 서식 적용 · 이미지는 위 업로드 버튼 사용</div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeWriteModal()">취소</button>
-      <button class="btn-submit" onclick="submitPost()">게시하기</button>
+      <button class="btn-cancel" type="button" data-board-action="close-write">취소</button>
+      <button class="btn-submit" type="button" data-board-action="submit">게시하기</button>
     </div>
   </div>
 </div>
@@ -802,246 +218,12 @@ a{text-decoration:none;color:inherit}
 <div class="inapp-banner" id="inappBanner">
   카카오톡 인앱 브라우저에서는 Google 로그인이 지원되지 않아요.<br>
   로그인 없이도 글 작성은 가능해요 😊<br>
-  <button class="inapp-banner-btn" onclick="openExternalBrowser()">외부 브라우저로 열기</button>
-  <button class="inapp-banner-btn" style="background:var(--surface2);color:var(--text2);margin-left:8px" onclick="document.getElementById('inappBanner').classList.remove('show')">닫기</button>
+  <button class="inapp-banner-btn" data-open-external>외부 브라우저로 열기</button>
+  <button class="inapp-banner-btn inapp-banner-close" data-inapp-close>닫기</button>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-
-
-<script>
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-const CARDS = [
-  { id:1,  name:"공식 홈페이지",          desc:"시즈닝게임즈 공식 홈페이지",                                 icon:"🌐", iconClass:"ic-teal",   tags:["main"],  section:"pin",      pinned:true, page:null, url:"https://www.seasoninggames.com/ko/blog", external:true },
-  { id:2,  name:"Deathfisaro's 가이드북", desc:"세부팁, 자원 획득, 랭크벨 해금, 과학/양자/진리나무 최적화", icon:"📘", iconClass:"ic-blue",   tags:["guide"], section:"pin",      pinned:true, page:null, url:"https://brickinc-guide.netlify.app/", external:true },
-  { id:3,  name:"신 이전",                desc:"신 이전 구간 가이드",       icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-pre-god" },
-  { id:4,  name:"신1 ~ 신4",              desc:"신1~신4 구간 가이드",       icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god1-4" },
-  { id:5,  name:"신4 ~ 신7",              desc:"신4~신7 구간 가이드",       icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god4-7" },
-  { id:6,  name:"신7 ~ 신11",             desc:"신7~신11 구간 가이드",      icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god7-11" },
-  { id:7,  name:"신11 ~ 신15",            desc:"신11~신15 구간 가이드",     icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-god11-15" },
-  { id:8,  name:"초월신1 ~ 4",            desc:"초월신1~4 구간 가이드",     icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-super1-4" },
-  { id:9,  name:"초월신4 이후",           desc:"초월신4 이후 운영 가이드",  icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"guide",    page:"guide-super4" },
-  { id:10, name:"다이브",                 desc:"다이브 공략",               icon:"🤿", iconClass:"ic-blue",   tags:["guide"], section:"strategy", page:"guide-dive" },
-  { id:11, name:"신수 공략",              desc:"신수 공략집",               icon:"🐉", iconClass:"ic-teal",   tags:["guide"], section:"strategy", page:"guide-beast-guide" },
-  { id:12, name:"차원탐사 공략",          desc:"차원탐사 공략집",           icon:"🔭", iconClass:"ic-purple", tags:["guide"], section:"strategy", page:"guide-dimension-guide" },
-  { id:13, name:"차원열차 공략",              desc:"차원열차 공략집",               icon:"🚂", iconClass:"ic-teal",   tags:["guide"], section:"strategy", page:"guide-dimension-train" },
-  { id:14, name:"수치 정보",              desc:"수치 정보집",               icon:"📖", iconClass:"ic-gray",   tags:["guide"], section:"strategy", page:"guide-amounts" },
-  { id:15, name:"득도·승천 계산기",       desc:"득도 승천 계산기",          icon:"⚡", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-ascension" },
-  { id:16, name:"제련 계산기",            desc:"재화별 제련 비용 계산",     icon:"🔨", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-forge" },
-  { id:17, name:"신수 계산기",            desc:"신수 각성·폭주 비용 계산",  icon:"🧮", iconClass:"ic-amber",  tags:["cal"],   section:"cal",      page:"calc-beast-cal" },
-  { id:18, name:"차원탐사 기댓값",        desc:"차원탐사 기댓값 계산기",    icon:"🎲", iconClass:"ic-purple", tags:["cal"],   section:"cal",      page:"calc-dimension-ev" },
-  { id:19, name:"진리의 길",              desc:"최적경로 찾기",             icon:"🗺️", iconClass:"ic-teal",  tags:["tool"],  section:"tool",     page:"tool-path" },
-  { id:20, name:"진리의 나무",            desc:"세팅 프리셋 및 누적 효과",  icon:"🌳", iconClass:"ic-teal",   tags:["tool"],  section:"tool",     page:"tool-tree" },
-  { id:21, name:"과금내역 확인",          desc:"과금내역 확인 (구글)",      icon:"💳", iconClass:"ic-gray",   tags:["tool"],  section:"tool",     page:null, url:"https://docs.google.com/", external:true },
-  { id:22, name:"건의게시판",             desc:"게시판 추가 건의 / 공략 요청", icon:"📬", iconClass:"ic-purple", tags:["community"], section:"community", page:"board-suggest" },
-];
-
-const IFRAME_PAGES = {
-  'calc-ascension':    { src:'calc/ascension.html',           title:'득도·승천 계산기' },
-  'calc-forge':        { src:'calc/forge.html',               title:'제련 계산기' },
-  'calc-beast-cal':    { src:'calc/beast-cal/beast-cal.html', title:'신수 계산기' },
-  'calc-dimension-ev': { src:'calc/dimension-ev.html',        title:'차원탐사 기댓값' },
-  'tool-path':         { src:'tool/path.html',                title:'진리의 길' },
-  'tool-tree':         { src:'tool/tree/tree.html',           title:'진리의 나무' },
-};
-
-window.GUIDES = {
-  'guide-pre-god':         { title:'신 이전',      desc:'신 이전 구간 공략 게시판' },
-  'guide-god1-4':          { title:'신1 ~ 신4',    desc:'신1~신4 구간 공략 게시판' },
-  'guide-god4-7':          { title:'신4 ~ 신7',    desc:'신4~신7 구간 공략 게시판' },
-  'guide-god7-11':         { title:'신7 ~ 신11',   desc:'신7~신11 구간 공략 게시판' },
-  'guide-god11-15':        { title:'신11 ~ 신15',  desc:'신11~신15 구간 공략 게시판' },
-  'guide-super1-4':        { title:'초월신1 ~ 4',  desc:'초월신1~4 구간 공략 게시판' },
-  'guide-super4':          { title:'초월신4 이후', desc:'초월신4 이후 운영 게시판' },
-  'guide-dive':            { title:'다이브',       desc:'다이브 공략 게시판' },
-  'guide-beast-guide':     { title:'신수 공략',    desc:'신수 공략 게시판' },
-  'guide-dimension-guide': { title:'차원탐사 공략',desc:'차원탐사 공략 게시판' },
-  'guide-dimension-train': { title:'차원열차 공략',desc:'차원열차 공략 게시판' },
-  'guide-amounts': { title:'수치 정보',desc:'수치게시판' },
-  'board-suggest':         { title:'건의게시판',   desc:'게시판 추가 건의, 공략 요청 등 자유롭게 남겨주세요.' },
-};
-
-// 라우터
-function navigate(page) {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-
-  history.pushState({ page }, '', page === 'home' ? location.pathname : location.pathname + '#' + page);
-  showPage(page);
-}
-
-function showPage(page) {
-  document.querySelectorAll('.view,.view-iframe').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
-    el.classList.toggle('active', el.dataset.page === page);
-  });
-  const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
-  document.getElementById('mobileTitle').textContent = navEl ? navEl.textContent.trim() : '벽돌주식회사';
-
-  if (page === 'home') {
-    document.getElementById('view-home').classList.add('active');
-    document.querySelector('.nav-item[data-page="home"]').classList.add('active');
-  } else if (IFRAME_PAGES[page]) {
-    const info = IFRAME_PAGES[page];
-    document.getElementById('iframeTitle').textContent = info.title;
-    const iframe = document.getElementById('contentIframe');
-    if (!iframe.src.includes(info.src)) iframe.src = info.src;
-    document.getElementById('view-iframe').classList.add('active');
-  } else if (window.GUIDES[page]) {
-    document.getElementById('view-guide').classList.add('active');
-    window.scrollTo(0, 0);
-    window.loadBoard(page);
-  }
-}
-
-// 카드
-function renderCard(card) {
-  const el = document.createElement('div');
-  el.className = 'card' + (card.pinned ? ' pinned' : '');
-  el.dataset.tags = card.tags.join(',');
-  el.dataset.section = card.section;
-  el.innerHTML = `
-    ${card.pinned ? '<div class="card-pin">PIN</div>' : ''}
-    <div class="card-icon ${card.iconClass}">${card.icon}</div>
-    <div class="card-name">${card.name}</div>
-    <div class="card-desc">${card.desc}</div>
-    <div class="card-footer">${card.tags.map(t=>`<span class="card-tag">#${t}</span>`).join('')}</div>`;
-  el.addEventListener('click', () => {
-    if (card.external) window.open(card.url, '_blank');
-    else if (card.page) navigate(card.page);
-  });
-  return el;
-}
-
-function initCards() {
-  const grids = { pin:'grid-pin', guide:'grid-guide', strategy:'grid-strategy', cal:'grid-cal', tool:'grid-tool', community:'grid-community' };
-  CARDS.forEach(card => {
-    const el = document.getElementById(grids[card.section]);
-    if (el) el.appendChild(renderCard(card));
-  });
-}
-
-// 필터
-let activeTag = 'all', searchQuery = '';
-function applyFilter() {
-  let total = 0;
-  const secCount = { pin:0, guide:0, strategy:0, cal:0, tool:0, community:0 };
-  document.querySelectorAll('.card').forEach(card => {
-    const tags = card.dataset.tags.split(',');
-    const name = card.querySelector('.card-name').textContent;
-    const desc = card.querySelector('.card-desc').textContent;
-    const sec  = card.dataset.section;
-    const ok   = (activeTag==='all' || tags.includes(activeTag)) &&
-                 (!searchQuery || name.includes(searchQuery) || desc.includes(searchQuery));
-    card.style.display = ok ? '' : 'none';
-    if (ok) { total++; secCount[sec] = (secCount[sec]||0)+1; }
-  });
-  Object.entries(secCount).forEach(([s,c]) => {
-    const el = document.getElementById('section-'+s);
-    if (el) el.style.display = c===0 ? 'none' : '';
-  });
-  document.getElementById('emptyMsg').style.display = total===0 ? 'block' : 'none';
-}
-document.getElementById('tagBar').addEventListener('click', e => {
-  if (!e.target.classList.contains('tag')) return;
-  document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-  e.target.classList.add('active');
-  activeTag = e.target.dataset.tag;
-  applyFilter();
-});
-document.getElementById('searchInput').addEventListener('input', e => {
-  searchQuery = e.target.value.trim();
-  applyFilter();
-});
-
-// 배너
-async function loadBanner() {
-  try {
-    const res = await fetch('data/latest_post.json');
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    document.getElementById('bannerText').textContent = data.title
-      ? `새 글: ${data.title}` : '공식 사이트에서 최신 업데이트를 확인하세요.';
-  } catch {
-    document.getElementById('bannerText').textContent = '공식 사이트에서 최신 업데이트를 확인하세요.';
-  }
-}
-
-// 토스트
-let toastTimer;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
-}
-window.showToast = showToast;
-
-// 모바일
-document.getElementById('menuBtn').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('show');
-});
-document.getElementById('overlay').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-});
-
-// 히스토리
-window.addEventListener('popstate', e => {
-  const page = (e.state?.page) || location.hash.replace('#','') || 'home';
-  showPage(page);
-});
-
-// 모달 바깥 클릭 닫기
-['postModal','writeModal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => {
-    if (e.target.id === id) {
-      e.target.classList.remove('show');
-    }
-  });
-});
-
-// 초기화
-initCards();
-loadBanner();
-const initPage = location.hash.replace('#','') || 'home';
-history.replaceState({ page: initPage }, '', location.href);
-showPage(initPage);
-// Quill은 페이지 로드 시 바로 초기화 (모달 열리기 전에)
-initQuill();
-
-// 카카오톡 인앱 브라우저 감지
-(function() {
-  const ua = navigator.userAgent.toLowerCase();
-  const isInApp = /kakaotalk|line|naver|instagram|facebook|twitter/i.test(ua);
-  if (isInApp) {
-    document.getElementById('inappBanner').classList.add('show');
-    const authBtn = document.getElementById('authBtn');
-    if (authBtn) {
-      authBtn.onclick = () => showToast('카카오톡에서는 로그인이 지원되지 않아요. 외부 브라우저를 이용해주세요.');
-    }
-  }
-})();
-
-function openExternalBrowser() {
-  const url = location.href;
-  const isAndroid = /android/i.test(navigator.userAgent);
-  if (isAndroid) {
-    location.href = 'intent://' + url.replace(/https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
-  } else {
-    navigator.clipboard?.writeText(url).then(() => {
-      showToast('주소가 복사됐어요! Safari에서 붙여넣기 해주세요.');
-    }).catch(() => {
-      showToast('주소창에서 직접 열어주세요: ' + url);
-    });
-  }
-}
-</script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

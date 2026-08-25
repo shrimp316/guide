@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark-gaming">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>각성·폭주 기대상승치 계산기 💎</title>
+  <link rel="stylesheet" href="../../css/design-system.css">
   <style>
     :root {
       --bg: #0f1117;
@@ -11,11 +12,12 @@
       --surface2: #22263a;
       --border: #2e3248;
       --primary: #6c8fff;
+      --on-primary: #111827;
       --primary-glow: rgba(108,143,255,0.18);
       --gold: #f5c842;
       --gold-dim: rgba(245,200,66,0.12);
       --text: #e8eaf6;
-      --text-muted: #7b82a8;
+      --text-muted: #8f96ba;
       --success: #4ade80;
       --danger: #f87171;
       --radius: 16px;
@@ -87,7 +89,7 @@
     button:active { transform: scale(0.94); }
     button.active {
       background: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
       border-color: var(--primary);
       box-shadow: 0 0 16px rgba(108,143,255,0.4);
     }
@@ -289,15 +291,15 @@
     .step-chip[data-state="tar"] {
       background: var(--primary);
       border-color: var(--primary);
-      color: #fff;
+      color: var(--on-primary);
       box-shadow: 0 0 10px rgba(108,143,255,0.5);
     }
     /* 현재=목표 (동일) */
     .step-chip[data-state="both"] {
-      background: linear-gradient(135deg, #3a3f52 0%, var(--primary) 100%);
+      background: var(--primary);
       border-color: var(--primary);
-      color: #fff;
-      box-shadow: 0 0 10px rgba(108,143,255,0.4);
+      color: var(--on-primary);
+      box-shadow: inset 0 0 0 2px rgba(17,24,39,0.45), 0 0 10px rgba(108,143,255,0.4);
     }
 
     /* 칩 아래 점으로 현재/목표 구분 표시 */
@@ -311,8 +313,8 @@
       opacity: 0;
     }
     .step-chip[data-state="cur"]::after   { background: #9ca3af; opacity: 1; }
-    .step-chip[data-state="tar"]::after   { background: #fff; opacity: 0.7; }
-    .step-chip[data-state="both"]::after  { background: #fff; opacity: 0.8; }
+    .step-chip[data-state="tar"]::after   { background: var(--on-primary); opacity: 0.7; }
+    .step-chip[data-state="both"]::after  { background: var(--on-primary); opacity: 0.8; }
     .step-chip[data-state="range"]::after { background: var(--primary); opacity: 0.6; }
 
     /* 범례 */
@@ -405,7 +407,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      width: 100%;
       padding: 12px 20px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
       cursor: pointer;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
@@ -474,7 +483,7 @@
     @media (max-width: 600px) {
       .card-grid { grid-template-columns: 1fr; gap: 12px; }
       .main-wrap { padding: 14px 10px; }
-      .step-btn { width: 36px; padding: 7px 0; font-size: 14px; }
+      .step-chip { width: 36px; min-height: 40px; padding: 7px 0; font-size: 14px; }
       .card-name { font-size: 16px; }
       .result-boost { font-size: 20px; }
       .summary-body { grid-template-columns: 1fr; }
@@ -509,7 +518,7 @@
       <button id="btnFmtSuffix" onclick="setNumFormat('suffix')" class="active">접미사</button>
       <button id="btnFmtSci" onclick="setNumFormat('sci')">과학표기</button>
       <div class="toolbar-sep"></div>
-      <span class="filter-label">🔍</span>
+      <label class="filter-label" for="effectFilter" aria-label="효과 필터">🔍</label>
       <select id="effectFilter" onchange="applyFilter()">
         <option value="all">전체 신수</option>
       </select>
@@ -528,53 +537,53 @@
 
   <!-- 하단 요약 패널 -->
   <div id="summary-panel">
-    <div class="summary-handle" onclick="toggleSummary()">
-      <div class="summary-handle-left">
+    <button class="summary-handle" type="button" aria-expanded="false" aria-controls="summary-body" onclick="toggleSummary()">
+      <span class="summary-handle-left">
         <span class="summary-title">📊 결과 요약</span>
         <span class="summary-gem-preview" id="sum-gem-preview">💎 0</span>
-      </div>
+      </span>
       <span class="summary-chevron">▲</span>
-    </div>
-    <div class="summary-body" id="summary-body">
+    </button>
+    <div class="summary-body" id="summary-body" aria-hidden="true">
       <div class="summary-card gold-card full">
         <div class="summary-card-label">💎 총 예상 보석 가치</div>
-        <div class="summary-card-val" id="sum-gem">0</div>
+        <div class="summary-card-val" id="sum-gem" aria-live="polite" aria-atomic="true">0</div>
       </div>
       <div class="summary-card">
         <div class="summary-card-label">정수</div>
-        <div class="summary-card-val" id="sum-jung">0</div>
+        <div class="summary-card-val" id="sum-jung" aria-live="polite" aria-atomic="true">0</div>
       </div>
       <div class="summary-card">
         <div class="summary-card-label">파멸의조각</div>
-        <div class="summary-card-val" id="sum-pameol">0</div>
+        <div class="summary-card-val" id="sum-pameol" aria-live="polite" aria-atomic="true">0</div>
       </div>
       <div class="summary-card">
         <div class="summary-card-label">각성의돌</div>
-        <div class="summary-card-val" id="sum-gak">0</div>
+        <div class="summary-card-val" id="sum-gak" aria-live="polite" aria-atomic="true">0</div>
       </div>
       <div class="summary-card">
         <div class="summary-card-label">파멸의돌</div>
-        <div class="summary-card-val" id="sum-chowol">0</div>
+        <div class="summary-card-val" id="sum-chowol" aria-live="polite" aria-atomic="true">0</div>
       </div>
       <div class="summary-card blue-card">
         <div class="summary-card-label">📉 구버전 폭주 배율</div>
-        <div class="summary-card-val" id="sum-oldF">x1.00</div>
+        <div class="summary-card-val" id="sum-oldF" aria-live="polite" aria-atomic="true">x1.00</div>
       </div>
       <div class="summary-card blue-card">
         <div class="summary-card-label">📈 신버전 폭주 배율</div>
-        <div class="summary-card-val" id="sum-newF">x1.00</div>
+        <div class="summary-card-val" id="sum-newF" aria-live="polite" aria-atomic="true">x1.00</div>
       </div>
       <div class="summary-card blue-card">
         <div class="summary-card-label">📊 폭주 패치 영향</div>
-        <div class="summary-card-val" id="sum-deltaF">0%</div>
+        <div class="summary-card-val" id="sum-deltaF" aria-live="polite" aria-atomic="true">0%</div>
       </div>
       <div class="summary-card blue-card">
         <div class="summary-card-label">📍 현재 단계 패치 영향</div>
-        <div class="summary-card-val" id="sum-currentDelta">0%</div>
+        <div class="summary-card-val" id="sum-currentDelta" aria-live="polite" aria-atomic="true">0%</div>
       </div>
       <div class="summary-card full">
         <div class="summary-card-label">효과별 상승 배율</div>
-        <div class="summary-card-val" id="sum-effects" style="font-size:13px;white-space:pre-line;line-height:1.7;">없음</div>
+        <div class="summary-card-val" id="sum-effects" aria-live="polite" aria-atomic="true" style="font-size:13px;white-space:pre-line;line-height:1.7;">없음</div>
       </div>
     </div>
   </div>
@@ -807,8 +816,10 @@
       // 이미지
       const imgEl=document.createElement("img");
       imgEl.className="card-img";
-      imgEl.src=`images/${name}.png`;
+      imgEl.src=`images/${name}.webp`;
       imgEl.alt=name;
+      imgEl.loading="lazy";
+      imgEl.decoding="async";
       imgEl.onerror=function(){
         const ph=document.createElement("div");
         ph.className="card-img-placeholder";
@@ -1056,7 +1067,10 @@
 
     // ── 요약 패널 ──
     function toggleSummary(){
-      document.getElementById("summary-panel").classList.toggle("expanded");
+      const panel = document.getElementById("summary-panel");
+      const expanded = panel.classList.toggle("expanded");
+      panel.querySelector(".summary-handle").setAttribute("aria-expanded", String(expanded));
+      document.getElementById("summary-body").setAttribute("aria-hidden", String(!expanded));
     }
 
     setNumFormat("suffix");

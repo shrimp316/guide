@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="dark-gaming">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>🏭 제련 비용 계산기</title>
+<link rel="stylesheet" href="../css/design-system.css">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -13,7 +14,7 @@
     --accent: #f0a500;
     --accent2: #ff6b35;
     --text: #e8eaf0;
-    --text-dim: #7a7f99;
+    --text-dim: #878da8;
     --border: #2e3248;
     --radius: 14px;
     --radius-sm: 8px;
@@ -80,6 +81,7 @@
 
   /* 섹션 제목 */
   .section-label {
+    display: block;
     font-size: 11px;
     font-weight: 700;
     color: var(--text-dim);
@@ -180,6 +182,10 @@
   }
   .toggle input:checked + .toggle-slider { background: var(--accent2); }
   .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+  .toggle input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+  }
 
   /* 계산 탭 */
   .calc-section {
@@ -328,15 +334,21 @@
 </head>
 <body>
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('calc')">⚔️ 계산</button>
-  <button class="tab-btn" onclick="switchTab('prices')">💰 재화 설정</button>
+<div class="tabs" role="tablist" aria-label="제련 계산기 보기">
+  <button class="tab-btn active" id="tab-button-calc" role="tab" aria-selected="true" aria-controls="tab-calc" tabindex="0" onclick="switchTab('calc')">⚔️ 계산</button>
+  <button class="tab-btn" id="tab-button-prices" role="tab" aria-selected="false" aria-controls="tab-prices" tabindex="-1" onclick="switchTab('prices')">💰 재화 설정</button>
 </div>
 
+<!-- 헤더 -->
+<header style="display: flex; align-items: center; gap: 10px; padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border);">
+  <h1 style="font-size: 18px; font-weight: 700; margin: 0; flex: 1;">🏭 제련 비용 계산기</h1>
+  <a class="home-btn" href="../index.html" aria-label="홈으로" title="홈으로">🏠</a>
+</header>
+
 <!-- 계산 탭 -->
-<div class="tab-panel active" id="tab-calc">
+<div class="tab-panel active" id="tab-calc" role="tabpanel" aria-labelledby="tab-button-calc">
   <div class="calc-section">
-    <p class="section-label">품목 선택</p>
+    <label class="section-label" for="item">품목 선택</label>
     <div class="select-wrapper">
       <select id="item" onchange="calculateTotal()">
         <option value="">-- 선택하세요 --</option>
@@ -358,7 +370,7 @@
       </select>
     </div>
 
-    <p class="section-label">개수</p>
+    <label class="section-label" for="count">개수</label>
     <div class="count-row">
       <button class="count-btn" onclick="changeCount(-1)">−</button>
       <input type="number" id="count" value="1" min="1" oninput="calculateTotal()">
@@ -366,7 +378,7 @@
     </div>
   </div>
 
-  <div class="result-card" id="resultCard">
+  <div class="result-card" id="resultCard" role="status" aria-live="polite" aria-atomic="true">
     <div class="result-label">총 제련 비용</div>
     <div class="result-empty" id="resultEmpty">품목을 선택하세요</div>
     <div class="result-value" id="resultValue" style="display:none"></div>
@@ -381,7 +393,7 @@
 </div>
 
 <!-- 재화 설정 탭 -->
-<div class="tab-panel" id="tab-prices">
+<div class="tab-panel" id="tab-prices" role="tabpanel" aria-labelledby="tab-button-prices" hidden>
   <p class="section-label">재화 단가 설정</p>
   <p style="font-size:12px; color:var(--text-dim); margin-bottom:14px;">비워두면 기본값 사용 · 0처리 토글로 강제 0 설정 가능</p>
   <div class="materials-grid" id="materialsGrid"></div>
@@ -447,15 +459,15 @@ function buildMaterialsGrid() {
     const card = document.createElement('div');
     card.className = 'mat-card';
     card.innerHTML = `
-      <div class="mat-name" title="${name}">${name}</div>
+      <label class="mat-name" for="user_${id}" title="${name}">${name}</label>
       ${hints[name] ? `<div class="mat-hint">${hints[name]}</div>` : ''}
       <input type="number" id="user_${id}" step="0.001" placeholder="${defVal}" oninput="calculateTotal()">
       <div class="mat-def">기본: ${defVal}</div>
       <div class="zero-row">
         <span class="zero-label">0 처리</span>
         <label class="toggle">
-          <input type="checkbox" class="zero-toggle" data-target="user_${id}" onchange="handleZero(this)">
-          <span class="toggle-slider"></span>
+          <input type="checkbox" class="zero-toggle" data-target="user_${id}" aria-label="${name} 가격을 0으로 처리" onchange="handleZero(this)">
+          <span class="toggle-slider" aria-hidden="true"></span>
         </label>
       </div>
     `;
@@ -475,7 +487,9 @@ function getPrice(type) {
   if (!id) return defaults[type] ?? 0;
   const el = document.getElementById('user_' + id);
   if (!el) return defaults[type] ?? 0;
-  return el.value === '' ? (defaults[type] ?? 0) : parseFloat(el.value);
+  if (el.value === '') return defaults[type] ?? 0;
+  const value = parseFloat(el.value);
+  return Number.isFinite(value) ? Math.max(0, value) : (defaults[type] ?? 0);
 }
 
 function changeCount(delta) {
@@ -525,11 +539,32 @@ function calculateTotal() {
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', (i === 0 && tab === 'calc') || (i === 1 && tab === 'prices'));
+    const selected = (i === 0 && tab === 'calc') || (i === 1 && tab === 'prices');
+    btn.classList.toggle('active', selected);
+    btn.setAttribute('aria-selected', String(selected));
+    btn.tabIndex = selected ? 0 : -1;
   });
-  document.getElementById('tab-calc').classList.toggle('active', tab === 'calc');
-  document.getElementById('tab-prices').classList.toggle('active', tab === 'prices');
+  ['calc', 'prices'].forEach(name => {
+    const selected = name === tab;
+    const panel = document.getElementById('tab-' + name);
+    panel.classList.toggle('active', selected);
+    panel.hidden = !selected;
+  });
 }
+
+document.querySelector('.tabs').addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  const tabs = [...document.querySelectorAll('.tab-btn')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const next = event.key === 'Home' ? 0
+    : event.key === 'End' ? tabs.length - 1
+    : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  const name = tabs[next].id.replace('tab-button-', '');
+  switchTab(name);
+  tabs[next].focus();
+});
 
 buildMaterialsGrid();
 </script>

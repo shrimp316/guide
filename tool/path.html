@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>진리의길 최적경로</title>
+  <link rel="stylesheet" href="../css/design-system.css">
   <style>
     :root {
-      --bg: #f5f4f0; --surface: #fff; --surface2: #f0efe9;
-      --border: #e2e0d8; --text: #1a1917; --text2: #6b6960; --text3: #9b998f;
-      --teal: #1D9E75; --teal-light: #E1F5EE; --teal-border: #5DCAA5;
+      --surface2: var(--surface-variant);
+      --text: var(--text-primary); --text2: var(--text-secondary); --text3: var(--text-tertiary);
+      --teal: var(--brand); --teal-light: var(--brand-100); --teal-border: var(--brand-700);
       --radius: 10px; --radius-sm: 6px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,16 +21,16 @@
     .controls { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 14px; }
     .controls-label { font-size: 11px; font-weight: 500; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
     .btn-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .btn { padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
-    .btn:hover { border-color: var(--teal-border); color: var(--teal); }
+    .btn { min-height: 44px; padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+    .btn:hover { border-color: var(--teal-border); color: var(--brand-700); }
     .btn.active { background: var(--teal-light); border-color: var(--teal-border); color: #0F6E56; font-weight: 500; }
-    .btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 500; width: 100%; padding: 10px; border-radius: var(--radius-sm); font-size: 14px; margin-top: 4px; cursor: pointer; font-family: inherit; border: none; transition: background 0.15s; }
+    .btn-primary { background: var(--brand-700); color: #fff; border-color: var(--brand-700); font-weight: 500; width: 100%; padding: 10px; border-radius: var(--radius-sm); font-size: 14px; margin-top: 4px; cursor: pointer; font-family: inherit; border: none; transition: background 0.15s; }
     .btn-primary:hover { background: #0F6E56; }
     .btn-primary:active { transform: scale(0.98); }
 
     .select-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
     .select-row label { font-size: 12px; color: var(--text2); white-space: nowrap; }
-    select { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-size: 13px; font-family: inherit; color: var(--text); outline: none; }
+    select { flex: 1; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); font-size: 13px; font-family: inherit; color: var(--text); outline: none; }
 
     /* 현재 모드 뱃지 */
     .mode-badge {
@@ -47,7 +48,7 @@
     .grid-card h3 { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; text-align: center; }
     .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 100%; }
     .cell {
-      aspect-ratio: 1; background: #E1F5EE; border: 1px solid #c8e6c9;
+      aspect-ratio: 1; background: var(--brand-100); border: 1px solid var(--border-strong);
       cursor: pointer; user-select: none; touch-action: manipulation;
       -webkit-user-select: none; -webkit-touch-callout: none;
       border-radius: 3px; display: flex; align-items: center; justify-content: center;
@@ -56,14 +57,15 @@
     }
     .cell.pop { transform: scale(0.82); }
     .cell.obstacle { background: #424242; border-color: #212121; }
-    .cell.start { background: #1976D2; border-color: #0d47a1; }
-    .cell.end { background: #E64A19; border-color: #bf360c; }
-    .cell.path { background: #388E3C !important; border-color: #1b5e20 !important; color: #fff; }
-    .cell.grade-2 { background: #bdbdbd; border-color: #9e9e9e; }
-    .cell.grade-3 { background: #E1F5EE; border-color: #5DCAA5; }
-    .cell.grade-4 { background: #81d4fa; border-color: #0288d1; }
-    .cell.grade-5 { background: #fff176; border-color: #f9a825; color: #333; }
-    .cell.grade-6 { background: #ce93d8; border-color: #7b1fa2; color: #fff; }
+    .cell.start { background: #1565c0; border-color: #0d47a1; color: #fff; }
+    .cell.end { background: #cc3a12; border-color: #9f2b0b; color: #fff; }
+    .cell.path { background: #2e7d32 !important; border-color: #1b5e20 !important; color: #fff; }
+    .cell.grade-2 { background: #bdbdbd; border-color: #757575; }
+    .cell.grade-3 { background: var(--brand-100); border-color: var(--brand-700); }
+    .cell.grade-4 { background: #81d4fa; border-color: #026aa7; }
+    .cell.grade-5 { background: #fff176; border-color: #8c6500; color: #333; }
+    .cell.grade-6 { background: #ce93d8; border-color: #6a1b9a; color: #1a1a1f; }
+    .cell[aria-disabled="true"] { cursor: default; }
 
     /* 범례 */
     .legend { display: flex; flex-wrap: wrap; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 14px; }
@@ -88,11 +90,16 @@
       .cell { font-size: 12px; }
       h1 { font-size: 20px; }
     }
+    @media (max-width: 479px) {
+      .grids-wrap { grid-template-columns: 1fr; }
+      .cell { min-height: 44px; font-size: 12px; }
+    }
   </style>
 </head>
 <body>
 
-  <p class="subtitle">시작점·도착점 지정 후 장애물/등급 설정 → 최적 경로 찾기<br>모바일: 길게 눌러 등급 변경 / PC: 우클릭으로 등급 변경</p>
+  <h1>진리의 길 최적 경로</h1>
+  <p class="subtitle">시작점·도착점 지정 후 장애물/등급 설정 → 최적 경로 찾기<br>키보드: 방향키 이동 · Enter/Space 적용 · Shift+Enter 등급 변경<br>모바일: 길게 눌러 등급 변경 / PC: 우클릭으로 등급 변경</p>
 
   <div class="controls">
     <div class="controls-label">모드 선택</div>
@@ -109,7 +116,7 @@
       <button class="btn" onclick="setAllToGrade(3)">발판 고급</button>
     </div>
     <div class="select-row">
-      <label>승천 단계</label>
+      <label for="multiplierStage">승천 단계</label>
       <select id="multiplierStage">
         <option value="1">1단계 (x1)</option>
         <option value="2">2단계 (x2)</option>
@@ -129,7 +136,7 @@
   <div class="legend">
     <div class="legend-item"><div class="legend-dot" style="background:#424242"></div>장애물</div>
     <div class="legend-item"><div class="legend-dot" style="background:#1976D2"></div>시작</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#E64A19"></div>도착</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#cc3a12"></div>도착</div>
     <div class="legend-item"><div class="legend-dot" style="background:#bdbdbd"></div>일반(1pt)</div>
     <div class="legend-item"><div class="legend-dot" style="background:#E1F5EE;border:1px solid #5DCAA5"></div>고급(2pt)</div>
     <div class="legend-item"><div class="legend-dot" style="background:#81d4fa"></div>희귀(4pt)</div>
@@ -140,16 +147,16 @@
   <div class="grids-wrap">
     <div class="grid-card">
       <h3>입력창</h3>
-      <div class="grid" id="inputGrid"></div>
+      <div class="grid" id="inputGrid" role="grid" aria-label="경로 입력 격자"></div>
     </div>
     <div class="grid-card">
       <h3>결과창</h3>
-      <div class="grid" id="outputGrid"></div>
+      <div class="grid" id="outputGrid" aria-label="최적 경로 결과 격자"></div>
     </div>
   </div>
 
-  <div class="result-card" id="totalScore">총합 점수: 0</div>
-  <div class="toast" id="toast"></div>
+  <div class="result-card" id="totalScore" role="status" aria-live="polite">총합 점수: 0</div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
     const size = 5;
@@ -199,16 +206,21 @@
       showToast('초기화 완료');
     }
 
+    const gradeScoresText = { 0:'고급 2점', 2:'일반 1점', 3:'고급 2점', 4:'희귀 4점', 5:'전설 10점', 6:'신화 30점' };
+
     function render() {
       [...inputGrid.children].forEach(cell => {
         const x = +cell.dataset.x, y = +cell.dataset.y;
         cell.className = 'cell';
         cell.textContent = '';
-        if (start && start[0] === x && start[1] === y) { cell.classList.add('start'); cell.textContent = 'S'; return; }
-        if (end && end[0] === x && end[1] === y) { cell.classList.add('end'); cell.textContent = 'E'; return; }
+        if (start && start[0] === x && start[1] === y) { cell.classList.add('start'); cell.textContent = 'S'; cell.setAttribute('aria-label', `${y+1}행 ${x+1}열, 시작점`); return; }
+        if (end && end[0] === x && end[1] === y) { cell.classList.add('end'); cell.textContent = 'E'; cell.setAttribute('aria-label', `${y+1}행 ${x+1}열, 도착점`); return; }
         const val = board[y][x];
-        if (val === 1) { cell.classList.add('obstacle'); return; }
+        if (val === 1) { cell.classList.add('obstacle'); cell.textContent = '×'; cell.setAttribute('aria-label', `${y+1}행 ${x+1}열, 장애물`); return; }
         cell.classList.add(val >= 2 ? `grade-${val}` : 'grade-3');
+        const score = val === 2 ? 1 : val === 4 ? 4 : val === 5 ? 10 : val === 6 ? 30 : 2;
+        cell.textContent = score;
+        cell.setAttribute('aria-label', `${y+1}행 ${x+1}열, ${gradeScoresText[val] || gradeScoresText[0]}`);
       });
     }
 
@@ -216,10 +228,12 @@
       return (start && start[0] === x && start[1] === y) || (end && end[0] === x && end[1] === y);
     }
 
-    const gradeNames = { 3:'고급', 4:'희귀', 5:'전설', 6:'신화' };
+    const gradeNames = { 2:'일반', 3:'고급', 4:'희귀', 5:'전설', 6:'신화' };
     function cycleCellGrade(x, y) {
       if (isStartOrEnd(x, y) || board[y][x] === 1) return;
-      board[y][x] = board[y][x] < 3 ? 4 : (board[y][x] >= 6 ? 3 : board[y][x] + 1);
+      // P0: 등급 순환 버그 수정 — 2→3→4→5→6→2 순환 (일반을 누락하지 않음)
+      const currentGrade = board[y][x];
+      board[y][x] = currentGrade < 2 || currentGrade >= 6 ? 2 : currentGrade + 1;
       // 팝 애니메이션
       const idx = y * size + x;
       popCell(inputGrid.children[idx]);
@@ -235,6 +249,8 @@
       for (let x = 0; x < size; x++) {
         const cell = document.createElement("div");
         cell.className = "cell"; cell.dataset.x = x; cell.dataset.y = y;
+        cell.setAttribute('role', 'gridcell');
+        cell.tabIndex = 0;
 
         cell.onclick = (e) => {
           if (suppressNextClick) { suppressNextClick = false; return; }
@@ -258,6 +274,23 @@
           }
           render();
         };
+
+        cell.addEventListener('keydown', (e) => {
+          const moves = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+          if (moves[e.key]) {
+            e.preventDefault();
+            const [dx,dy] = moves[e.key];
+            const nx = Math.max(0, Math.min(size - 1, x + dx));
+            const ny = Math.max(0, Math.min(size - 1, y + dy));
+            inputGrid.children[ny * size + nx].focus();
+          } else if (e.key === 'Enter' && e.shiftKey) {
+            e.preventDefault();
+            cycleCellGrade(x, y);
+          } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            cell.click();
+          }
+        });
 
         cell.oncontextmenu = (e) => {
           e.preventDefault();
@@ -294,6 +327,7 @@
         inputGrid.appendChild(cell);
         const outputCell = document.createElement("div");
         outputCell.className = "cell"; outputCell.dataset.x = x; outputCell.dataset.y = y;
+        outputCell.setAttribute('aria-hidden', 'true');
         outputGrid.appendChild(outputCell);
       }
     }

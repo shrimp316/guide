@@ -6,26 +6,19 @@
   <title>득도·승천 계산기</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/design-system.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #f4f5f7;
-      --surface: #ffffff;
-      --surface2: #f8f9fb;
-      --border: #e8eaed;
-      --border-focus: #4f7df0;
-      --text-primary: #1a1d23;
-      --text-secondary: #6b7280;
-      --text-muted: #9ca3af;
-      --accent: #4f7df0;
-      --accent-light: #eef2ff;
-      --accent-dark: #3563d4;
-      --gold: #f59e0b;
-      --gold-light: #fffbeb;
-      --green: #10b981;
+      --surface2: var(--surface-variant);
+      --border-focus: var(--focus-ring);
+      --text-muted: var(--text-tertiary);
+      --gold: var(--accent-dark);
+      --gold-light: var(--accent-light);
+      --green: var(--success-text);
       --green-light: #ecfdf5;
-      --red: #ef4444;
+      --red: var(--danger-text);
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
       --radius: 12px;
@@ -50,7 +43,7 @@
     }
     .home-btn {
       background: var(--surface);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
       width: 38px; height: 38px;
       display: flex; align-items: center; justify-content: center;
@@ -60,7 +53,7 @@
       transition: all 0.15s;
       flex-shrink: 0;
     }
-    .home-btn:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+    .home-btn:hover { border-color: var(--brand-700); box-shadow: 0 0 0 3px var(--brand-100); }
 
     .page-title {
       font-size: 18px;
@@ -107,7 +100,7 @@
     .card-header-icon {
       width: 28px; height: 28px;
       border-radius: 6px;
-      background: var(--accent-light);
+      background: var(--brand-50);
       display: flex; align-items: center; justify-content: center;
       font-size: 14px;
     }
@@ -123,7 +116,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       background: var(--surface2);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
       padding: 4px;
       gap: 4px;
@@ -143,7 +136,7 @@
     }
     .type-btn.active {
       background: var(--surface);
-      color: var(--accent);
+      color: var(--brand-700);
       box-shadow: var(--shadow-sm);
       font-weight: 700;
     }
@@ -168,14 +161,14 @@
       letter-spacing: 0;
       color: var(--text-muted);
       background: var(--surface2);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
       padding: 1px 6px;
       border-radius: 4px;
     }
     .form-input {
       width: 100%;
       padding: 9px 12px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
       border-radius: var(--radius-sm);
       font-size: 14px;
       font-family: 'DM Mono', monospace;
@@ -185,8 +178,8 @@
       outline: none;
     }
     .form-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-light);
+      border-color: var(--brand-700);
+      box-shadow: 0 0 0 3px var(--brand-100);
     }
     .form-input::placeholder { color: var(--text-muted); font-family: 'Noto Sans KR', sans-serif; font-size: 13px; }
 
@@ -217,7 +210,7 @@
       font-size: 14px;
       font-weight: 700;
       font-family: inherit;
-      background: var(--accent);
+      background: var(--brand-700);
       color: white;
       border: none;
       border-radius: var(--radius-sm);
@@ -225,7 +218,7 @@
       transition: all 0.15s;
       letter-spacing: -0.2px;
     }
-    .calc-btn:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,125,240,0.3); }
+    .calc-btn:hover { background: var(--brand-800); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,110,85,0.3); }
     .calc-btn:active { transform: translateY(0); }
 
     /* RESULT AREA */
@@ -252,7 +245,7 @@
       align-items: center;
       gap: 6px;
     }
-    .result-section-header.blue { background: var(--accent-light); color: var(--accent); }
+    .result-section-header.blue { background: var(--brand-50); color: var(--brand-700); }
     .result-section-header.gold { background: var(--gold-light); color: #b45309; }
     .result-section-header.green { background: var(--green-light); color: #047857; }
 
@@ -278,7 +271,7 @@
       color: var(--text-primary);
       font-family: 'DM Mono', monospace;
     }
-    .result-cell-value.accent { color: var(--accent); }
+    .result-cell-value.accent { color: var(--brand-700); }
     .result-cell-value.gold { color: var(--gold); }
     .result-cell-value.green { color: var(--green); }
 
@@ -297,14 +290,14 @@
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-strong);
       background: var(--surface);
       cursor: pointer;
       transition: all 0.12s;
       color: var(--text-secondary);
     }
-    .stage-chip:hover { border-color: var(--accent); color: var(--accent); }
-    .stage-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .stage-chip:hover { border-color: var(--brand-700); color: var(--brand-700); }
+    .stage-chip.active { background: var(--brand-700); border-color: var(--brand-700); color: white; }
 
     /* TABLE */
     .table-wrap { overflow-x: auto; }
@@ -332,8 +325,8 @@
     }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: var(--surface2); }
-    .row-highlight td { background: var(--accent-light) !important; }
-    .row-highlight td { color: var(--accent); font-weight: 700; }
+    .row-highlight td { background: var(--brand-50) !important; }
+    .row-highlight td { color: var(--brand-700); font-weight: 700; }
 
     .time-dropdowns {
       display: grid;
@@ -350,6 +343,11 @@
   </style>
 </head>
 <body>
+
+  <header class="topbar">
+    <h1>득도·승천 계산기</h1>
+    <a class="home-btn" href="../index.html" aria-label="홈으로" title="홈으로">🏠</a>
+  </header>
 
   <div class="layout">
     <!-- LEFT: CALC -->
@@ -368,8 +366,8 @@
 
         <!-- STAGE -->
         <div class="form-group">
-          <div class="form-label">단계 선택</div>
-          <div class="stage-nav" id="stageNav">
+          <div class="form-label" id="stage-label">단계 선택</div>
+          <div class="stage-nav" id="stageNav" role="group" aria-labelledby="stage-label">
             <!-- chips generated by JS -->
           </div>
           <input type="hidden" id="stage" value="1">
@@ -377,7 +375,7 @@
 
         <!-- ATTEMPTS -->
         <div class="form-group">
-          <div class="form-label">투입 횟수</div>
+          <label class="form-label" for="attempts">투입 횟수</label>
           <input class="form-input" type="number" id="attempts" min="1" value="1" placeholder="예: 30">
         </div>
 
@@ -385,30 +383,30 @@
         <div class="optional-divider">선택 입력</div>
 
         <div class="form-group">
-          <div class="form-label">투입 정수 <span class="optional">선택</span></div>
+          <label class="form-label" for="points">투입 정수 <span class="optional">선택</span></label>
           <input class="form-input" type="number" id="points" placeholder="보유 정수 입력">
         </div>
 
         <div class="form-group">
-          <div class="form-label">초당 상승량 <span class="optional">선택</span></div>
+          <label class="form-label" for="rateInput">초당 상승량 <span class="optional">선택</span></label>
           <input class="form-input" type="number" id="rateInput" placeholder="예: 5.23">
         </div>
 
         <div class="form-group">
-          <div class="form-label">목표 시간 <span class="optional">선택</span></div>
+          <div class="form-label" id="target-time-label">목표 시간 <span class="optional">선택</span></div>
           <div class="time-dropdowns">
             <div class="time-select-wrap">
-              <select class="form-input time-select" id="targetDay">
+              <select class="form-input time-select" id="targetDay" aria-label="목표 일수">
                 <option value="0">0일</option>
               </select>
             </div>
             <div class="time-select-wrap">
-              <select class="form-input time-select" id="targetHour">
+              <select class="form-input time-select" id="targetHour" aria-label="목표 시간">
                 <option value="0">0시간</option>
               </select>
             </div>
             <div class="time-select-wrap">
-              <select class="form-input time-select" id="targetMin">
+              <select class="form-input time-select" id="targetMin" aria-label="목표 분">
                 <option value="0">0분</option>
               </select>
             </div>
@@ -417,7 +415,7 @@
 
         <button class="calc-btn" onclick="calculate()">계산하기</button>
 
-        <div id="result-area"></div>
+        <div id="result-area" role="status" aria-live="polite" aria-atomic="true"></div>
       </div>
     </div>
 
@@ -466,7 +464,9 @@
       currentStage = n;
       document.getElementById('stage').value = n;
       document.querySelectorAll('.stage-chip').forEach(c => {
-        c.classList.toggle('active', parseInt(c.dataset.stage) === n);
+        const selected = parseInt(c.dataset.stage) === n;
+        c.classList.toggle('active', selected);
+        c.setAttribute('aria-pressed', String(selected));
       });
       generateTable();
     }
@@ -475,10 +475,12 @@
       const nav = document.getElementById('stageNav');
       nav.innerHTML = '';
       for (let i = 1; i <= 10; i++) {
-        const chip = document.createElement('div');
+        const chip = document.createElement('button');
+        chip.type = 'button';
         chip.className = 'stage-chip' + (i === 1 ? ' active' : '');
         chip.dataset.stage = i;
         chip.textContent = i + '단계';
+        chip.setAttribute('aria-pressed', String(i === 1));
         chip.onclick = () => setStage(i);
         nav.appendChild(chip);
       }
@@ -539,6 +541,13 @@
       const type = currentType;
       const stage = currentStage;
       const attempts = parseInt(document.getElementById('attempts').value);
+
+      // P0: NaN 검증 추가
+      if (!attempts || attempts <= 0 || isNaN(attempts)) {
+        showToast('올바른 투입 횟수를 입력하세요.');
+        return;
+      }
+
       const userPoints = parseFloat(document.getElementById('points').value);
       const userRate = parseFloat(document.getElementById('rateInput').value);
       const targetSeconds = getTargetSeconds();

@@ -3,21 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <title>벽돌주식회사 결제 필터 & 합계 계산</title>
+  <link rel="stylesheet" href="../css/design-system.css">
   <style>
     body {
       font-family: 'Pretendard', sans-serif;
-      background: #f8f9fa;
+      background: var(--bg);
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 40px;
-      color: #333;
+      color: var(--text-primary);
     }
     h2 { margin-bottom: 15px; }
     p { margin-bottom: 10px; text-align: center; line-height: 1.4; }
-    input[type="file"] { margin: 10px 0; }
+    .instructions { max-width: 640px; line-height: 1.7; margin: 0 0 14px; padding-left: 24px; }
+    .privacy-note { font-size: 13px; color: var(--text-secondary); }
+    .file-label { font-weight: 600; margin-top: 12px; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    input[type="file"] {
+      margin: 10px 0;
+      padding: 6px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-primary);
+    }
     button {
-      background: #007bff;
+      background: var(--brand-700);
       color: white;
       border: none;
       padding: 10px 20px;
@@ -27,28 +39,28 @@
       margin: 5px;
       transition: background 0.2s;
     }
-    button:hover { background: #0056b3; }
+    button:hover { background: var(--brand-800); }
     .result {
       margin-top: 25px;
       font-size: 17px;
       font-weight: 600;
       text-align: center;
     }
-    /* 🌐 아이콘 버튼 스타일 */
+    /* 보조 작업 버튼 */
     .icon-btn {
       background: none;
       border: none;
       cursor: pointer;
       font-size: 28px;
-      color: #007bff;
+      color: var(--brand-700);
       transition: color 0.25s, transform 0.2s;
     }
     .icon-btn:hover {
-      color: #0056b3;
+      color: var(--brand-800);
       transform: scale(1.2);
     }
     .icon-btn:disabled {
-      color: #ccc;
+      color: var(--text-tertiary);
       cursor: not-allowed;
       transform: none;
     }
@@ -56,21 +68,23 @@
 </head>
 <body>
 
+  <h1>벽돌주식회사 결제 합계 계산</h1>
+  <ol class="instructions">
+    <li>Google Takeout에서 로그인한 뒤 Google Pay만 선택해 CSV를 내보냅니다.</li>
+    <li>아래에서 CSV 파일을 선택하고 <strong>합계 계산</strong>을 누릅니다.</li>
+    <li>‘설명’에 ‘벽돌주식회사’가 포함되고 ‘상태’가 ‘완료’인 거래의 합계와 필터 CSV를 확인합니다.</li>
+  </ol>
+  <p class="privacy-note">Takeout 링크는 편의를 위해 제공되며 이 페이지는 선택한 파일을 서버로 전송하거나 개인정보를 수집하지 않습니다.</p>
 
-  <p>‘설명’에 <strong>‘벽돌주식회사’</strong>가 포함되고,<br>‘상태’가 <strong>‘완료’</strong>인 행만 필터링하여 합계를 계산합니다.
-  <br>csv파일은 🌐 버튼 클릭 후 로그인하여 테이크아웃목록에서 google pay만 선택하여 내보내기 하시면 됩니다.
-<br> ※ 해당 링크는 편의를 위한 링크이며 이 사이트는 개인정보를 수집하지 않습니다. ※</p>
-
+  <label class="file-label" for="fileInput">Google Pay 결제 내역 CSV</label>
   <input type="file" id="fileInput" accept=".csv">
-  <button onclick="processCSV()">합계 계산</button>
+  <div class="actions">
+    <button type="button" onclick="processCSV()">합계 계산</button>
+    <button type="button" onclick="openLink()">🌐 Google Takeout 열기</button>
+    <button type="button" id="downloadFilteredButton" onclick="downloadFiltered()" disabled>필터 결과 CSV 다운로드</button>
+  </div>
 
-  <div class="result" id="output"></div>
-
-  <!-- 🌐 CSV 다운로드 아이콘 버튼 -->
-  <button id="downloadIcon" class="icon-btn" title="결제 내역 가져오기"
-  onclick="openLink()" >
-🌐
-</button>
+  <div class="result" id="output" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 function openLink() {
@@ -115,7 +129,7 @@ window.open(url, '_blank');
     function processCSV() {
       const file = document.getElementById('fileInput').files[0];
       if (!file) {
-        alert("CSV 파일을 선택하세요!");
+        document.getElementById('output').textContent = "⚠️ CSV 파일을 선택하세요.";
         return;
       }
 
@@ -137,8 +151,11 @@ window.open(url, '_blank');
           const desc = cols[descIndex] || "";
           const state = cols[stateIndex] || "";
           const amount = cols[amountIndex] || "";
+          // 표기 차이(벽돌주식회사/벽돌 주식회사)를 모두 허용한다.
+          const normalizedDesc = desc.replace(/\s+/g, '');
+          const normalizedPattern = "벽돌주식회사";
 
-          if (desc.includes("벽돌 주식회사") && state.includes("완료")) {
+          if (normalizedDesc.includes(normalizedPattern) && state.includes("완료")) {
             filteredRows.push(rows[i]);
             total += extractNumber(amount);
           }
@@ -150,8 +167,8 @@ window.open(url, '_blank');
             : "⚠️ '벽돌주식회사' + '완료' 조건에 해당하는 내역이 없습니다.";
 
         // CSV 다운로드 아이콘 활성화
-        const iconBtn = document.getElementById('downloadIcon');
-        iconBtn.disabled = filteredRows.length <= 1;
+        const downloadBtn = document.getElementById('downloadFilteredButton');
+        downloadBtn.disabled = filteredRows.length <= 1;
       };
 
       reader.readAsText(file, 'UTF-8');
@@ -173,6 +190,7 @@ window.open(url, '_blank');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
   </script>
 
