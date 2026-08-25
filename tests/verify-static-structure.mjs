@@ -9,6 +9,7 @@ const productionFiles = [
   'css/design-system.css',
   'css/index.css',
   'js/app.js',
+  'js/admin-panel.js',
   'js/board.js',
   'js/firebase-client.js',
   'js/quill-loader.js',
@@ -41,6 +42,9 @@ function isLocalReference(value) {
 
 for (const relativePath of productionFiles) {
   assert.ok(await exists(resolve(root, relativePath)), `missing production file: ${relativePath}`);
+}
+for (const obsoletePath of ['admin.html', 'css/admin.css', 'js/admin.js']) {
+  assert.equal(await exists(resolve(root, obsoletePath)), false, `obsolete standalone admin file remains: ${obsoletePath}`);
 }
 
 const indexPath = resolve(root, 'index.html');

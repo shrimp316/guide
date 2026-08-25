@@ -45,9 +45,18 @@ export const GUIDES = {
   'board-suggest': { title:'건의게시판', desc:'게시판 추가 건의, 공략 요청 등 자유롭게 남겨주세요.' },
 };
 
+export const GUIDE_HUBS = {
+  'guide-all': { title:'전체 가이드', desc:'모든 가이드를 한곳에서 확인하세요.', group:'all' },
+  'guide-content': { title:'컨텐츠 공략', desc:'다이브, 신수, 차원 컨텐츠 공략을 모았습니다.', group:'content' },
+  'guide-numbers': { title:'수치 정보', desc:'게임 내 수치와 데이터 정보를 확인하세요.', group:'numbers' },
+};
+
 let currentPage = 'home';
 let boardModulePromise;
+let adminModulePromise;
+let adminPageLoadPromise;
 let toastTimer;
+let lastAdminAccess = null;
 const modalTriggers = new Map();
 let activeModalId = null;
 
@@ -59,6 +68,16 @@ function getBoardModule() {
     });
   }
   return boardModulePromise;
+}
+
+function getAdminModule() {
+  if (!adminModulePromise) {
+    adminModulePromise = import('./admin-panel.js').catch(error => {
+      adminModulePromise = undefined;
+      throw error;
+    });
+  }
+  return adminModulePromise;
 }
 
 export function escHtml(value) {
@@ -105,16 +124,48 @@ export function closeAccessibleModal(id, restoreFocus = true) {
   modalTriggers.delete(id);
 }
 
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
+function closeNavigation() {
+  document.getElementById('primaryNav').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('menuBtn').setAttribute('aria-expanded', 'false');
+  document.getElementById('menuBtn').setAttribute('aria-label', '메뉴 열기');
+  document.querySelectorAll('.nav-menu-trigger').forEach(trigger => {
+    trigger.setAttribute('aria-expanded', 'false');
+    document.getElementById(trigger.dataset.menu).hidden = true;
+  });
 }
 
 function navigate(page) {
-  closeSidebar();
+  closeNavigation();
   history.pushState({ page }, '', page === 'home' ? location.pathname : `${location.pathname}#${page}`);
   showPage(page);
+}
+
+async function loadAdminPage() {
+  if (adminPageLoadPromise) return adminPageLoadPromise;
+  adminPageLoadPromise = performAdminPageLoad().finally(() => {
+    adminPageLoadPromise = undefined;
+  });
+  return adminPageLoadPromise;
+}
+
+async function performAdminPageLoad() {
+  const status = document.getElementById('adminStatus');
+  document.getElementById('adminApp').hidden = true;
+  status.classList.remove('error');
+  status.textContent = '관리자 권한을 확인하는 중입니다.';
+  try {
+    const board = await getBoardModule();
+    const authState = await board.getCurrentAuthState();
+    if (!isPageActive('admin')) return;
+    const admin = await getAdminModule();
+    await admin.loadAdminPanel(authState);
+  } catch (error) {
+    console.error('운영진 화면 로드 실패:', error);
+    if (!isPageActive('admin')) return;
+    status.classList.add('error');
+    status.textContent = '운영진 화면을 불러오지 못했습니다.';
+  }
 }
 
 function showPage(page) {
@@ -126,18 +177,33 @@ function showPage(page) {
     if (active) item.setAttribute('aria-current', 'page');
     else item.removeAttribute('aria-current');
   });
-  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
-  document.getElementById('mobileTitle').textContent = navItem ? navItem.textContent.trim() : '벽돌주식회사';
-
+  document.querySelector('[data-menu="guideMenu"]')?.classList.toggle('active', Boolean(GUIDE_HUBS[page] || (GUIDES[page] && page !== 'board-suggest')));
+  document.querySelector('[data-menu="toolsMenu"]')?.classList.toggle('active', Boolean(IFRAME_PAGES[page]));
   if (page === 'home') {
     document.getElementById('view-home').classList.add('active');
     scheduleHomeBoardPreview();
+  } else if (page === 'admin') {
+    document.getElementById('view-admin').classList.add('active');
+    window.scrollTo(0, 0);
+    loadAdminPage();
   } else if (IFRAME_PAGES[page]) {
     const info = IFRAME_PAGES[page];
     document.getElementById('iframeTitle').textContent = info.title;
     const iframe = document.getElementById('contentIframe');
     if (!iframe.src.includes(info.src)) iframe.src = info.src;
     document.getElementById('view-iframe').classList.add('active');
+  } else if (GUIDE_HUBS[page]) {
+    const hub = GUIDE_HUBS[page];
+    document.getElementById('view-guide-hub').classList.add('active');
+    document.getElementById('guideHubTitle').textContent = hub.title;
+    document.getElementById('guideHubDesc').textContent = hub.desc;
+    window.scrollTo(0, 0);
+    getBoardModule()
+      .then(board => board.loadGuideHub(page, hub.group))
+      .catch(error => {
+        console.error('통합 가이드 로드 실패:', error);
+        if (isPageActive(page)) document.getElementById('guideHubList').innerHTML = '<p class="board-status board-status-error">가이드를 불러오지 못했습니다.</p>';
+      });
   } else if (GUIDES[page]) {
     document.getElementById('view-guide').classList.add('active');
     window.scrollTo(0, 0);
@@ -147,6 +213,8 @@ function showPage(page) {
         console.error('게시판 모듈 로드 실패:', error);
         if (isPageActive(page)) document.getElementById('boardList').innerHTML = '<p class="board-status board-status-error">게시판 연결에 실패했습니다.</p>';
       });
+  } else {
+    navigate('home');
   }
 }
 
@@ -232,7 +300,34 @@ function openExternalBrowser() {
 }
 
 function bindEvents() {
+  window.addEventListener('brick-auth-change', event => {
+    const hasAdminAccess = event.detail?.isAdmin === true;
+    const accessWasRevoked = lastAdminAccess === true && !hasAdminAccess;
+    lastAdminAccess = hasAdminAccess;
+    if (accessWasRevoked && isPageActive('admin')) {
+      getAdminModule()
+        .then(admin => admin.clearAdminPanel('관리자 권한이 해제되었습니다.'))
+        .catch(error => console.error('운영진 화면 정리 실패:', error));
+      navigate('home');
+      showToast('관리자 권한이 없어 운영진 화면을 종료했습니다.');
+    } else if (hasAdminAccess && isPageActive('admin')) {
+      loadAdminPage();
+    }
+  });
+
   document.addEventListener('click', event => {
+    const menuTrigger = event.target.closest('.nav-menu-trigger');
+    if (menuTrigger) {
+      const menu = document.getElementById(menuTrigger.dataset.menu);
+      const willOpen = menuTrigger.getAttribute('aria-expanded') !== 'true';
+      document.querySelectorAll('.nav-menu-trigger').forEach(trigger => {
+        trigger.setAttribute('aria-expanded', 'false');
+        document.getElementById(trigger.dataset.menu).hidden = true;
+      });
+      menuTrigger.setAttribute('aria-expanded', String(willOpen));
+      menu.hidden = !willOpen;
+      return;
+    }
     const pageTarget = event.target.closest('[data-page]');
     if (pageTarget) return navigate(pageTarget.dataset.page);
     const externalTarget = event.target.closest('[data-external-url]');
@@ -241,6 +336,12 @@ function bindEvents() {
     if (modalClose) return closeAccessibleModal(modalClose.dataset.modalClose);
     if (event.target.closest('[data-inapp-close]')) return document.getElementById('inappBanner').classList.remove('show');
     if (event.target.closest('[data-open-external]')) return openExternalBrowser();
+    if (!event.target.closest('.nav-menu')) {
+      document.querySelectorAll('.nav-menu-trigger[aria-expanded="true"]').forEach(trigger => {
+        trigger.setAttribute('aria-expanded', 'false');
+        document.getElementById(trigger.dataset.menu).hidden = true;
+      });
+    }
   });
 
   document.getElementById('authBtn').addEventListener('click', () => {
@@ -254,15 +355,49 @@ function bindEvents() {
     renderSearchResults(event.target.value);
   });
   document.getElementById('menuBtn').addEventListener('click', () => {
-    const open = document.getElementById('sidebar').classList.toggle('open');
+    const open = document.getElementById('primaryNav').classList.toggle('open');
     document.getElementById('overlay').classList.toggle('show', open);
     document.getElementById('menuBtn').setAttribute('aria-expanded', String(open));
+    document.getElementById('menuBtn').setAttribute('aria-label', open ? '메뉴 닫기' : '메뉴 열기');
   });
-  document.getElementById('overlay').addEventListener('click', closeSidebar);
+  document.getElementById('overlay').addEventListener('click', closeNavigation);
   window.addEventListener('popstate', event => showPage(event.state?.page || location.hash.replace('#', '') || 'home'));
 
   const focusableSelector = ['a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])', 'select:not([disabled])', 'textarea:not([disabled])', '[contenteditable="true"]', '[tabindex]:not([tabindex="-1"])'].join(',');
   document.addEventListener('keydown', event => {
+    const menuTrigger = event.target.closest?.('.nav-menu-trigger');
+    if (menuTrigger && event.key === 'ArrowDown') {
+      event.preventDefault();
+      const menu = document.getElementById(menuTrigger.dataset.menu);
+      menuTrigger.setAttribute('aria-expanded', 'true');
+      menu.hidden = false;
+      menu.querySelector('button')?.focus();
+      return;
+    }
+    const dropdown = event.target.closest?.('.nav-dropdown');
+    if (dropdown && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const items = [...dropdown.querySelectorAll('button:not([disabled])')];
+      const currentIndex = items.indexOf(event.target);
+      let nextIndex = currentIndex;
+      if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = items.length - 1;
+      else if (event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % items.length;
+      else nextIndex = (currentIndex - 1 + items.length) % items.length;
+      items[nextIndex]?.focus();
+      return;
+    }
+    if (dropdown && event.key === 'Escape') {
+      event.preventDefault();
+      const trigger = document.querySelector(`[data-menu="${dropdown.id}"]`);
+      closeNavigation();
+      trigger?.focus();
+      return;
+    }
+    if (!activeModalId && event.key === 'Escape') {
+      closeNavigation();
+      return;
+    }
     if (!activeModalId) return;
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -301,6 +436,9 @@ if (/kakaotalk|line|naver|instagram|facebook|twitter/i.test(navigator.userAgent)
 }
 
 async function bootstrap() {
+  const authStatePromise = getBoardModule()
+    .then(board => board.initializeAuthState())
+    .catch(error => console.error('인증 상태 확인 실패:', error));
   if (sessionStorage.getItem('brick-guide:auth-redirect-pending') === '1') {
     try {
       const board = await getBoardModule();
@@ -310,6 +448,7 @@ async function bootstrap() {
     }
   }
   showPage(initialPage);
+  await authStatePromise;
 }
 
 bootstrap();

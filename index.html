@@ -17,70 +17,41 @@
 </head>
 <body>
 
-<header class="mobile-header">
-  <button class="hamburger" id="menuBtn" type="button" aria-label="메뉴 열기" aria-controls="sidebar" aria-expanded="false">☰</button>
-  <span class="mobile-title" id="mobileTitle">벽돌주식회사</span>
+<header class="site-header">
+  <div class="topbar">
+    <button class="brand" type="button" data-page="home" aria-label="벽돌주식회사 홈으로 이동"><span aria-hidden="true">🧱</span><span>벽돌주식회사</span></button>
+    <button class="menu-toggle" id="menuBtn" type="button" aria-label="메뉴 열기" aria-controls="primaryNav" aria-expanded="false">☰</button>
+    <nav class="top-nav" id="primaryNav" aria-label="주요 메뉴">
+      <button class="nav-item" type="button" data-page="home">홈</button>
+      <a class="nav-item" href="https://www.seasoninggames.com/ko/blog" target="_blank" rel="noopener noreferrer">공식홈피 <span aria-hidden="true">↗</span></a>
+      <div class="nav-menu">
+        <button class="nav-item nav-menu-trigger" type="button" data-menu="guideMenu" aria-expanded="false" aria-controls="guideMenu">가이드 <span aria-hidden="true">▾</span></button>
+        <div class="nav-dropdown" id="guideMenu" hidden>
+          <button type="button" data-page="guide-all">전체 가이드</button>
+          <button type="button" data-page="guide-content">컨텐츠 공략</button>
+          <button type="button" data-page="guide-numbers">수치 정보</button>
+        </div>
+      </div>
+      <div class="nav-menu">
+        <button class="nav-item nav-menu-trigger" type="button" data-menu="toolsMenu" aria-expanded="false" aria-controls="toolsMenu">계산기 도구 <span aria-hidden="true">▾</span></button>
+        <div class="nav-dropdown nav-dropdown-wide" id="toolsMenu" hidden>
+          <button type="button" data-page="calc-ascension">득도·승천</button><button type="button" data-page="calc-forge">제련</button>
+          <button type="button" data-page="calc-beast-cal">신수 계산기</button><button type="button" data-page="calc-dimension-ev">차원탐사 기댓값</button>
+          <button type="button" data-page="tool-path">진리의 길</button><button type="button" data-page="tool-tree">진리의 나무</button>
+        </div>
+      </div>
+      <button class="nav-item" type="button" data-page="board-suggest">건의게시판</button>
+      <button class="nav-item admin-nav-item" id="adminNavItem" type="button" data-page="admin" hidden>운영진</button>
+    </nav>
+    <div class="auth-area">
+      <span class="user-info" id="userInfo"></span>
+      <button class="auth-btn" id="authBtn" type="button">Google 로그인</button>
+    </div>
+  </div>
 </header>
 <div class="overlay" id="overlay"></div>
 
 <div class="app">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="site-logo">
-        <button class="logo-icon" type="button" data-page="home" aria-label="홈으로 이동">🧱</button>
-        <div>
-          <div class="site-name"><button class="site-home-btn" type="button" data-page="home">벽돌주식회사</button></div>
-          <div class="site-sub">통합 정보사이트</div>
-        </div>
-      </div>
-      <div class="auth-area">
-        <div class="user-info" id="userInfo"></div>
-        <button class="auth-btn" id="authBtn">Google 로그인</button>
-      </div>
-    </div>
-    <nav class="nav">
-      <div class="nav-group">
-        <button class="nav-item" data-page="home"><span class="nav-icon">🏠</span> 홈</button>
-        <button class="nav-item" data-page="board-suggest"><span class="nav-icon">📬</span> 건의게시판</button>
-      </div>
-      <div class="nav-divider"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">가이드</div>
-        <button class="nav-item" data-page="guide-pre-god"><span class="nav-icon">📖</span> 신 이전</button>
-        <button class="nav-item" data-page="guide-god1-4"><span class="nav-icon">📖</span> 신1 ~ 신4</button>
-        <button class="nav-item" data-page="guide-god4-7"><span class="nav-icon">📖</span> 신4 ~ 신7</button>
-        <button class="nav-item" data-page="guide-god7-11"><span class="nav-icon">📖</span> 신7 ~ 신11</button>
-        <button class="nav-item" data-page="guide-god11-15"><span class="nav-icon">📖</span> 신11 ~ 신15</button>
-        <button class="nav-item" data-page="guide-super1-4"><span class="nav-icon">📖</span> 초월신1 ~ 4</button>
-        <button class="nav-item" data-page="guide-super4"><span class="nav-icon">📖</span> 초월신4 이후</button>
-      </div>
-      <div class="nav-divider"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">공략</div>
-        <button class="nav-item" data-page="guide-dive"><span class="nav-icon">🤿</span> 다이브</button>
-        <button class="nav-item" data-page="guide-beast-guide"><span class="nav-icon">🐉</span> 신수</button>
-        <button class="nav-item" data-page="guide-dimension-guide"><span class="nav-icon">🔭</span> 차원탐사</button>
-        <button class="nav-item" data-page="guide-dimension-train"><span class="nav-icon">🚂</span> 차원열차</button>
-        <button class="nav-item" data-page="guide-amounts"><span class="nav-icon">📖</span> 수치 정보</button>
-      </div>
-      <div class="nav-divider"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">계산기 / 도구</div>
-        <button class="nav-item" data-page="calc-ascension"><span class="nav-icon">⚡</span> 득도·승천</button>
-        <button class="nav-item" data-page="calc-forge"><span class="nav-icon">🔨</span> 제련</button>
-        <button class="nav-item" data-page="calc-beast-cal"><span class="nav-icon">🧮</span> 신수 계산기</button>
-        <button class="nav-item" data-page="calc-dimension-ev"><span class="nav-icon">🎲</span> 차원탐사 기댓값</button>
-        <button class="nav-item" data-page="tool-path"><span class="nav-icon">🗺️</span> 진리의 길</button>
-        <button class="nav-item" data-page="tool-tree"><span class="nav-icon">🌳</span> 진리의 나무</button>
-      </div>
-      <div class="nav-divider"></div>
-      <div class="nav-group">
-        <button class="nav-item" data-external-url="https://www.seasoninggames.com/ko/blog">
-          <span class="nav-icon">🌐</span> 공식 홈페이지 <span class="nav-ext">↗</span>
-        </button>
-      </div>
-    </nav>
-  </aside>
 
   <main class="main">
 
@@ -141,6 +112,39 @@
         </div>
       </div>
       <div id="boardList"></div>
+    </div>
+
+    <div class="view" id="view-guide-hub">
+      <div class="guide-header"><div><h2 class="guide-title" id="guideHubTitle">전체 가이드</h2><p class="guide-desc" id="guideHubDesc">모든 가이드를 한곳에서 확인하세요.</p></div></div>
+      <div class="guide-filters" aria-label="가이드 필터와 정렬">
+        <div class="field"><label for="guideIndexFilter">인덱스</label><select id="guideIndexFilter"><option value="">전체 인덱스</option></select></div>
+        <div class="field"><label for="guideSort">정렬</label><select id="guideSort"><option value="latest">최신순</option><option value="popular">추천순</option></select></div>
+      </div>
+      <p class="filter-status" id="guideFilterStatus" role="status" aria-live="polite"></p>
+      <div id="guideHubList"></div>
+    </div>
+
+    <div class="view" id="view-admin" aria-labelledby="adminTitle">
+      <div class="admin-view-heading">
+        <div><p class="section-kicker">STAFF</p><h2 id="adminTitle">운영진 관리</h2></div>
+        <p>가이드 인덱스를 만들고 각 게시글에 하나의 인덱스를 지정합니다.</p>
+      </div>
+      <p class="admin-status" id="adminStatus" role="status" aria-live="polite">관리자 권한을 확인하는 중입니다.</p>
+      <div id="adminApp" hidden>
+        <section class="admin-panel" aria-labelledby="indexTitle">
+          <div class="panel-heading"><div><p class="section-kicker">INDEX CATALOG</p><h3 id="indexTitle">인덱스 목록</h3></div></div>
+          <form class="index-create" id="indexCreateForm">
+            <label for="newIndexName">새 인덱스 이름</label>
+            <div><input id="newIndexName" required maxlength="30" autocomplete="off"><button type="submit">추가</button></div>
+          </form>
+          <div class="index-list" id="indexList"></div>
+        </section>
+        <section class="admin-panel" aria-labelledby="assignTitle">
+          <div class="panel-heading"><div><p class="section-kicker">POST CLASSIFICATION</p><h3 id="assignTitle">게시글 인덱스 지정</h3></div><span id="postCount"></span></div>
+          <p class="panel-help">게시글마다 인덱스를 하나만 지정할 수 있으며 선택 즉시 저장됩니다.</p>
+          <div class="post-assignment-list" id="postAssignmentList"></div>
+        </section>
+      </div>
     </div>
 
     <!-- iframe 뷰 -->

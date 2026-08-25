@@ -25,8 +25,10 @@ for (const page of ['calc-ascension', 'calc-dimension-ev', 'calc-forge', 'calc-b
   assert.match(html, new RegExp(`class="quick-action"[^>]+data-page="${page}"`), `${page} quick action is missing`);
 }
 for (const page of ['guide-dimension-train', 'guide-amounts']) {
-  assert.match(html, new RegExp(`class="nav-item"[^>]+data-page="${page}"`), `${page} remote navigation entry was lost during integration`);
   assert.match(app, new RegExp(`['"]${page}['"]\\s*:`), `${page} guide metadata was lost during integration`);
+}
+for (const page of ['guide-all', 'guide-content', 'guide-numbers']) {
+  assert.match(html, new RegExp(`data-page="${page}"`), `${page} unified guide navigation is missing`);
 }
 assert.match(html, /id="searchInput"[^>]+aria-controls="searchResults"/, 'integrated search is not connected to its results');
 

@@ -1,0 +1,65 @@
+// 검토용 예시입니다. 현재 운영 규칙을 먼저 병합한 뒤 배포하세요.
+// 이 파일은 firebase.json에 연결되어 있지 않아 자동 배포되지 않습니다.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function admin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function oldLikes() { return resource.data.get('likeCount', 0); }
+    function newLikes() { return request.resource.data.get('likeCount', 0); }
+    function likePath(postId) {
+      return /databases/$(database)/documents/posts/$(postId)/likes/$(request.auth.uid);
+    }
+    function validAssignedIndex() {
+      let indexId = request.resource.data.get('indexId', null);
+      return indexId == null || (
+        indexId is string
+        && exists(/databases/$(database)/documents/guideIndexes/$(indexId))
+      );
+    }
+
+    match /guideIndexes/{indexId} {
+      allow read: if true;
+      allow create, update: if admin()
+        && request.resource.data.name is string
+        && request.resource.data.active is bool;
+      allow delete: if false;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+
+      // 기존 글 작성/수정/삭제 정책은 현재 운영 규칙을 유지하세요.
+      // 일반 사용자는 관리자 분류와 집계값을 직접 변경할 수 없습니다.
+      allow update: if (admin() && validAssignedIndex()) || (
+        signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && (
+          (newLikes() == oldLikes() + 1 && !exists(likePath(postId)) && existsAfter(likePath(postId)))
+          || (oldLikes() > 0 && newLikes() == oldLikes() - 1 && exists(likePath(postId)) && !existsAfter(likePath(postId)))
+        )
+      );
+
+      match /likes/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || admin());
+        allow list: if false;
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+          && request.resource.data.uid == uid
+          && request.resource.data.createdAt == request.time
+          && !exists(/databases/$(database)/documents/posts/$(postId)/likes/$(uid))
+          && getAfter(/databases/$(database)/documents/posts/$(postId)).data.get('likeCount', 0)
+             == get(/databases/$(database)/documents/posts/$(postId)).data.get('likeCount', 0) + 1;
+        allow delete: if signedIn()
+          && request.auth.uid == uid
+          && getAfter(/databases/$(database)/documents/posts/$(postId)).data.get('likeCount', 0)
+             == get(/databases/$(database)/documents/posts/$(postId)).data.get('likeCount', 0) - 1;
+        allow update: if false;
+      }
+    }
+  }
+}
