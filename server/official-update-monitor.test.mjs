@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseBlogFeed, parsePostPage } from './official-update-monitor.js';
+import { normalizePrivateKey, parseBlogFeed, parsePostPage } from './official-update-monitor.js';
 
 test('RSS feed keeps canonical Korean post links and rejects the post hub', () => {
   const posts = parseBlogFeed(`
@@ -57,4 +57,11 @@ test('post parser accepts a rendered Wix post page and rejects a short shell', (
     () => parsePostPage('<main data-hook="post-page">공통 화면을 불러오는 중입니다.</main>', '대체 제목', url),
     /Could not extract complete official post content/,
   );
+});
+
+test('private key normalization accepts Vercel text and JSON-string formats', () => {
+  const expected = '-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----';
+  assert.equal(normalizePrivateKey(expected), expected);
+  assert.equal(normalizePrivateKey(expected.replaceAll('\n', '\\n')), expected);
+  assert.equal(normalizePrivateKey(JSON.stringify(expected)), expected);
 });

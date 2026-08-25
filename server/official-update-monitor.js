@@ -18,10 +18,23 @@ function requiredEnvironment(name) {
   return value;
 }
 
+export function normalizePrivateKey(value) {
+  const trimmed = value.trim();
+  let unquoted = trimmed;
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      unquoted = JSON.parse(trimmed);
+    } catch {
+      unquoted = trimmed.slice(1, -1);
+    }
+  }
+  return unquoted.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+}
+
 function createDatabase() {
   const projectId = requiredEnvironment('FIREBASE_PROJECT_ID');
   const clientEmail = requiredEnvironment('FIREBASE_CLIENT_EMAIL');
-  const privateKey = requiredEnvironment('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n');
+  const privateKey = normalizePrivateKey(requiredEnvironment('FIREBASE_PRIVATE_KEY'));
   const app = getApps()[0] || initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
     projectId,
