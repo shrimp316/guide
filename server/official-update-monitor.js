@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { createPrivateKey } from 'node:crypto';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { addedText, contentHash, extractLatestVersion, normalizeContent, stablePostId } from './content-diff.js';
@@ -18,8 +19,18 @@ function requiredEnvironment(name) {
   return value;
 }
 
+class PrivateKeyConfigurationError extends Error {
+  constructor(reason) {
+    super(`Firebase private key configuration is invalid (${reason})`);
+    this.name = 'PrivateKeyConfigurationError';
+    this.code = 'firebase-private-key-invalid';
+    this.safeDetail = `firebase-private-key:${reason}`;
+  }
+}
+
 export function normalizePrivateKey(value) {
-  const trimmed = value.trim();
+  if (typeof value !== 'string' || !value.trim()) throw new PrivateKeyConfigurationError('empty');
+  const trimmed = value.replace(/^\uFEFF/, '').trim();
   let unquoted = trimmed;
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
     try {
@@ -27,18 +38,54 @@ export function normalizePrivateKey(value) {
     } catch {
       unquoted = trimmed.slice(1, -1);
     }
+  } else if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+    unquoted = trimmed.slice(1, -1);
   }
-  return unquoted.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').trim();
+  if (typeof unquoted !== 'string') throw new PrivateKeyConfigurationError('json-object-not-supported');
+  let candidate = unquoted.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\r\n?/g, '\n').trim();
+
+  if (!candidate.includes('-----BEGIN ') && /^[A-Za-z0-9+/=\s]+$/.test(candidate)) {
+    try {
+      const decoded = Buffer.from(candidate.replace(/\s/g, ''), 'base64').toString('utf8').trim();
+      if (decoded.startsWith('-----BEGIN ')) candidate = decoded.replace(/\r\n?/g, '\n');
+    } catch {
+      // Shape validation below returns a stable, non-secret diagnostic.
+    }
+  }
+
+  const begin = '-----BEGIN PRIVATE KEY-----';
+  const end = '-----END PRIVATE KEY-----';
+  const beginIndex = candidate.indexOf(begin);
+  const endIndex = candidate.indexOf(end);
+  if (beginIndex < 0) throw new PrivateKeyConfigurationError('missing-pkcs8-header');
+  if (endIndex < 0 || endIndex < beginIndex) throw new PrivateKeyConfigurationError('missing-pkcs8-footer');
+  if (candidate.slice(0, beginIndex).trim() || candidate.slice(endIndex + end.length).trim()) {
+    throw new PrivateKeyConfigurationError('unexpected-wrapper-text');
+  }
+  const body = candidate.slice(beginIndex + begin.length, endIndex).replace(/\s/g, '');
+  if (!body || !/^[A-Za-z0-9+/]+={0,2}$/.test(body) || body.length % 4 !== 0) {
+    throw new PrivateKeyConfigurationError('invalid-base64-body');
+  }
+  const normalized = `${begin}\n${body.match(/.{1,64}/g).join('\n')}\n${end}\n`;
+  try {
+    createPrivateKey({ key: normalized, format: 'pem' });
+  } catch {
+    throw new PrivateKeyConfigurationError('crypto-parse-failed');
+  }
+  return normalized;
 }
 
 function createDatabase() {
   const projectId = requiredEnvironment('FIREBASE_PROJECT_ID');
   const clientEmail = requiredEnvironment('FIREBASE_CLIENT_EMAIL');
   const privateKey = normalizePrivateKey(requiredEnvironment('FIREBASE_PRIVATE_KEY'));
-  const app = getApps()[0] || initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey }),
-    projectId,
-  });
+  let credential;
+  try {
+    credential = cert({ projectId, clientEmail, privateKey });
+  } catch {
+    throw new PrivateKeyConfigurationError('credential-rejected');
+  }
+  const app = getApps()[0] || initializeApp({ credential, projectId });
   return getFirestore(app);
 }
 

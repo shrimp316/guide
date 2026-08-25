@@ -72,3 +72,14 @@ test('authenticated failure payload is bounded without exposing a stack', () => 
   assert.equal(payload.detail, 'x'.repeat(300));
   assert.equal('stack' in payload, false);
 });
+
+test('private key parse failures expose only a stable diagnostic code', () => {
+  const payload = formatFailure(new Error('Failed to parse private key. secret material must not appear'));
+  assert.deepEqual(payload, {
+    ok: false,
+    error: 'official-update-check-failed',
+    detail: 'firebase-private-key:credential-rejected',
+  });
+  const forged = formatFailure({ code: 'firebase-private-key-invalid', safeDetail: 'secret-value' });
+  assert.equal(forged.detail, '[object Object]');
+});

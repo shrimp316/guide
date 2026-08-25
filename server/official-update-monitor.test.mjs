@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { generateKeyPairSync } from 'node:crypto';
 import test from 'node:test';
 import { normalizePrivateKey, parseBlogFeed, parsePostPage } from './official-update-monitor.js';
 
@@ -60,8 +61,25 @@ test('post parser accepts a rendered Wix post page and rejects a short shell', (
 });
 
 test('private key normalization accepts Vercel text and JSON-string formats', () => {
-  const expected = '-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----';
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 1024 });
+  const expected = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
   assert.equal(normalizePrivateKey(expected), expected);
   assert.equal(normalizePrivateKey(expected.replaceAll('\n', '\\n')), expected);
   assert.equal(normalizePrivateKey(JSON.stringify(expected)), expected);
+  assert.equal(normalizePrivateKey(`'${expected}'`), expected);
+  assert.equal(normalizePrivateKey(Buffer.from(expected).toString('base64')), expected);
+});
+
+test('private key validation reports only safe shape diagnostics', () => {
+  const secretFragment = 'do-not-expose-this-value';
+  assert.throws(
+    () => normalizePrivateKey(secretFragment),
+    error => error.code === 'firebase-private-key-invalid'
+      && error.safeDetail === 'firebase-private-key:missing-pkcs8-header'
+      && !error.message.includes(secretFragment),
+  );
+  assert.throws(
+    () => normalizePrivateKey('-----BEGIN PRIVATE KEY-----\\nabc123\\n-----END PRIVATE KEY-----'),
+    error => error.safeDetail === 'firebase-private-key:invalid-base64-body',
+  );
 });

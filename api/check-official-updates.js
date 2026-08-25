@@ -11,8 +11,18 @@ export function manualAnnouncementAllowed(version) {
   return version === undefined || version === '2.5.8';
 }
 
+const PRIVATE_KEY_DIAGNOSTIC = /^firebase-private-key:(?:empty|json-object-not-supported|missing-pkcs8-header|missing-pkcs8-footer|unexpected-wrapper-text|invalid-base64-body|crypto-parse-failed|credential-rejected)$/;
+
 export function formatFailure(error) {
+  if (error?.code === 'firebase-private-key-invalid'
+      && typeof error.safeDetail === 'string'
+      && PRIVATE_KEY_DIAGNOSTIC.test(error.safeDetail)) {
+    return { ok: false, error: 'official-update-check-failed', detail: error.safeDetail };
+  }
   const detail = error instanceof Error ? error.message : String(error);
+  if (/failed to parse private key|private key configuration/i.test(detail)) {
+    return { ok: false, error: 'official-update-check-failed', detail: 'firebase-private-key:credential-rejected' };
+  }
   return {
     ok: false,
     error: 'official-update-check-failed',
