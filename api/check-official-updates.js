@@ -11,6 +11,15 @@ export function manualAnnouncementAllowed(version) {
   return version === undefined || version === '2.5.8';
 }
 
+export function formatFailure(error) {
+  const detail = error instanceof Error ? error.message : String(error);
+  return {
+    ok: false,
+    error: 'official-update-check-failed',
+    detail: detail.slice(0, 300),
+  };
+}
+
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
   if (request.method !== 'GET') {
@@ -29,6 +38,6 @@ export default async function handler(request, response) {
     return response.status(200).json(await checkOfficialUpdates({ announceVersion }));
   } catch (error) {
     console.error('Official update check failed:', error);
-    return response.status(500).json({ ok: false, error: 'official-update-check-failed' });
+    return response.status(500).json(formatFailure(error));
   }
 }

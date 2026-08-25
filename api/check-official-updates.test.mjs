@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import handler, { manualAnnouncementAllowed } from './check-official-updates.js';
+import handler, { formatFailure, manualAnnouncementAllowed } from './check-official-updates.js';
 
 function responseRecorder() {
   return {
@@ -64,4 +64,11 @@ test('manual announcement allowlist contains only 2.5.8 while cron remains avail
   assert.equal(manualAnnouncementAllowed('2.5.8'), true);
   assert.equal(manualAnnouncementAllowed('2.5.9'), false);
   assert.equal(manualAnnouncementAllowed('02.5.8'), false);
+});
+
+test('authenticated failure payload is bounded without exposing a stack', () => {
+  const payload = formatFailure(new Error('x'.repeat(500)));
+  assert.equal(payload.error, 'official-update-check-failed');
+  assert.equal(payload.detail, 'x'.repeat(300));
+  assert.equal('stack' in payload, false);
 });
