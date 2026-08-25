@@ -1,0 +1,15 @@
+{
+  "name": "brick-inc-guide",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:server": "node --test server/content-diff.test.mjs server/official-update-monitor.test.mjs api/check-official-updates.test.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "firebase-admin": "^14.3.0"
+  }
+}

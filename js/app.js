@@ -53,6 +53,7 @@ export const GUIDE_HUBS = {
 
 let currentPage = 'home';
 let boardModulePromise;
+let officialUpdatesModulePromise;
 let adminModulePromise;
 let adminPageLoadPromise;
 let toastTimer;
@@ -68,6 +69,16 @@ function getBoardModule() {
     });
   }
   return boardModulePromise;
+}
+
+function getOfficialUpdatesModule() {
+  if (!officialUpdatesModulePromise) {
+    officialUpdatesModulePromise = import('./official-updates.js').catch(error => {
+      officialUpdatesModulePromise = undefined;
+      throw error;
+    });
+  }
+  return officialUpdatesModulePromise;
 }
 
 function getAdminModule() {
@@ -181,6 +192,7 @@ function showPage(page) {
   document.querySelector('[data-menu="toolsMenu"]')?.classList.toggle('active', Boolean(IFRAME_PAGES[page]));
   if (page === 'home') {
     document.getElementById('view-home').classList.add('active');
+    scheduleOfficialUpdatesPreview();
     scheduleHomeBoardPreview();
   } else if (page === 'admin') {
     document.getElementById('view-admin').classList.add('active');
@@ -252,6 +264,45 @@ function renderSearchResults(query) {
 let homePreviewStarted = false;
 let homePreviewObserver;
 let homePreviewFallbackScheduled = false;
+let officialUpdatesStarted = false;
+let officialUpdatesObserver;
+let officialUpdatesFallbackScheduled = false;
+
+function startOfficialUpdatesPreview() {
+  if (officialUpdatesStarted || !isPageActive('home')) return;
+  officialUpdatesStarted = true;
+  getOfficialUpdatesModule()
+    .then(module => module.loadOfficialUpdates())
+    .catch(error => {
+      console.error('공식 소식 미리보기 로드 실패:', error);
+      const preview = document.getElementById('officialUpdatesPreview');
+      preview?.setAttribute('aria-busy', 'false');
+      if (preview) preview.innerHTML = '<p class="dashboard-empty dashboard-empty-error">공식 소식을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</p>';
+    });
+}
+
+function scheduleOfficialUpdatesPreview() {
+  if (officialUpdatesStarted || officialUpdatesObserver || officialUpdatesFallbackScheduled) return;
+  const preview = document.getElementById('officialUpdatesPreview');
+  if (!preview) return;
+  if ('IntersectionObserver' in window) {
+    officialUpdatesObserver = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      officialUpdatesObserver.disconnect();
+      officialUpdatesObserver = undefined;
+      startOfficialUpdatesPreview();
+    }, { rootMargin: '160px' });
+    officialUpdatesObserver.observe(preview);
+    return;
+  }
+  officialUpdatesFallbackScheduled = true;
+  const load = () => {
+    officialUpdatesFallbackScheduled = false;
+    startOfficialUpdatesPreview();
+  };
+  if ('requestIdleCallback' in window) window.requestIdleCallback(load, { timeout: 1500 });
+  else setTimeout(load, 0);
+}
 
 function startHomeBoardPreview() {
   if (homePreviewStarted || !isPageActive('home')) return;

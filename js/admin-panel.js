@@ -17,6 +17,7 @@ const CATEGORY_NAMES = {
 
 let indexes = [];
 let posts = [];
+let monitoredOfficialPosts = [];
 let eventsBound = false;
 let loadToken = 0;
 
@@ -155,11 +156,56 @@ function renderPosts() {
   });
 }
 
+function formatMonitorTime(value) {
+  const date = value?.toDate?.();
+  return date instanceof Date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString('ko-KR')
+    : '확인 기록 없음';
+}
+
+function renderOfficialMonitor() {
+  const list = document.getElementById('officialMonitorList');
+  list.replaceChildren();
+  document.getElementById('officialMonitorCount').textContent = `${monitoredOfficialPosts.length}개`;
+  if (!monitoredOfficialPosts.length) {
+    const empty = document.createElement('p');
+    empty.className = 'admin-empty';
+    empty.textContent = '아직 공식 홈페이지 감지 기록이 없습니다.';
+    list.append(empty);
+    return;
+  }
+
+  monitoredOfficialPosts.forEach(post => {
+    const row = document.createElement('a');
+    row.className = 'official-monitor-row';
+    row.href = typeof post.url === 'string' && /^https:\/\/www\.seasoninggames\.com\//.test(post.url)
+      ? post.url
+      : 'https://www.seasoninggames.com/ko/blog';
+    row.target = '_blank';
+    row.rel = 'noopener noreferrer';
+    const title = document.createElement('strong');
+    title.textContent = post.title || '제목 없는 공식 게시글';
+    const meta = document.createElement('small');
+    const version = post.latestVersion ? `${post.latestVersion} · ` : '';
+    meta.textContent = `${version}마지막 확인 ${formatMonitorTime(post.lastCheckedAt)}`;
+    row.append(title, meta);
+    list.append(row);
+  });
+}
+
 async function loadData(token) {
   const { db, sdk } = await ensureFirestore();
-  const [indexSnapshot, guidePosts] = await Promise.all([
+  const [indexSnapshot, guidePosts, officialSnapshot] = await Promise.all([
     sdk.getDocs(sdk.collection(db, 'guideIndexes')),
     getGuidePosts(db, sdk),
+    sdk.getDocs(sdk.query(
+      sdk.collection(db, 'officialPosts'),
+      sdk.orderBy('lastCheckedAt', 'desc'),
+      sdk.limit(5),
+    )).catch(error => {
+      console.error('공식 홈페이지 감지 상태 로드 실패:', error);
+      return null;
+    }),
   ]);
   if (token !== loadToken) return;
   indexes = [];
@@ -167,8 +213,11 @@ async function loadData(token) {
   indexes.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || (a.name || '').localeCompare(b.name || '', 'ko'));
   posts = guidePosts;
   posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  monitoredOfficialPosts = [];
+  officialSnapshot?.forEach(item => monitoredOfficialPosts.push({ id: item.id, ...item.data() }));
   renderIndexes();
   renderPosts();
+  renderOfficialMonitor();
 }
 
 function bindEvents() {
@@ -205,9 +254,11 @@ export function clearAdminPanel(message = '관리자 권한이 필요합니다.'
   loadToken += 1;
   indexes = [];
   posts = [];
+  monitoredOfficialPosts = [];
   document.getElementById('adminApp').hidden = true;
   document.getElementById('indexList').replaceChildren();
   document.getElementById('postAssignmentList').replaceChildren();
+  document.getElementById('officialMonitorList').replaceChildren();
   setStatus(message, true);
 }
 

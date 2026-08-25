@@ -29,6 +29,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /officialPosts/{postId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /officialPostChanges/{changeId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
     match /posts/{postId} {
       allow read: if true;
 
