@@ -15,11 +15,7 @@
       color: var(--text-primary);
       margin: 0;
     }
-    h1 {
-      text-align: center;
-      font-size: 20px;
-      margin: 0 0 20px;
-    }
+    .app-header { max-width: 760px; }
     .container {
       max-width: 760px;
       margin: auto;
@@ -113,18 +109,17 @@
     @media (max-width: 480px) {
       .container { padding: 14px; }
       .form-grid { grid-template-columns: 1fr; }
-      h1 { font-size: 17px; }
       canvas { max-height: 200px; }
     }
   </style>
 </head>
 <body>
 
-<div class="container">
+<header class="app-header">
+  <h1><span class="header-icon" aria-hidden="true">◈</span> 차원탐사 기대값 계산기</h1>
+</header>
 
-  <header>
-    <h1>차원탐사 기대값 계산기</h1>
-  </header>
+<div class="container">
 
   <div class="form-grid">
     <div class="form-item">

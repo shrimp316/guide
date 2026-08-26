@@ -14,6 +14,7 @@
       padding: 40px;
       color: var(--text-primary);
     }
+    .app-header { width: 100%; margin: 0 auto 24px; }
     h2 { margin-bottom: 15px; }
     p { margin-bottom: 10px; text-align: center; line-height: 1.4; }
     .instructions { max-width: 640px; line-height: 1.7; margin: 0 0 14px; padding-left: 24px; }
@@ -68,7 +69,9 @@
 </head>
 <body>
 
-  <h1>벽돌주식회사 결제 합계 계산</h1>
+  <header class="app-header">
+    <h1><span class="header-icon" aria-hidden="true">💳</span> 벽돌주식회사 결제 합계 계산</h1>
+  </header>
   <ol class="instructions">
     <li>Google Takeout에서 로그인한 뒤 Google Pay만 선택해 CSV를 내보냅니다.</li>
     <li>아래에서 CSV 파일을 선택하고 <strong>합계 계산</strong>을 누릅니다.</li>

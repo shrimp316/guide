@@ -1,25 +1,24 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="dark-gaming">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>각성·폭주 기대상승치 계산기 💎</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/design-system.css">
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e3248;
-      --primary: #6c8fff;
-      --on-primary: #111827;
-      --primary-glow: rgba(108,143,255,0.18);
-      --gold: #f5c842;
-      --gold-dim: rgba(245,200,66,0.12);
-      --text: #e8eaf6;
-      --text-muted: #8f96ba;
-      --success: #4ade80;
-      --danger: #f87171;
+      --surface2: var(--surface-variant);
+      --primary: var(--info-text);
+      --on-primary: #ffffff;
+      --primary-glow: rgba(29,78,216,0.10);
+      --gold: var(--accent-dark);
+      --gold-dim: var(--accent-light);
+      --text: var(--text-primary);
+      --text-muted: var(--text-tertiary);
+      --success: var(--success-text);
+      --danger: var(--danger-text);
       --radius: 16px;
       --card-radius: 20px;
     }
@@ -27,7 +26,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: "맑은 고딕", "Apple SD Gothic Neo", -apple-system, sans-serif;
+      font-family: 'Noto Sans KR', "Apple SD Gothic Neo", -apple-system, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -36,13 +35,12 @@
 
     /* ── 헤더 ── */
     .app-header {
-      background: linear-gradient(135deg, #1a1d27 0%, #12141e 100%);
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 18px 20px 14px;
+      padding: 14px 20px;
       position: sticky;
       top: 0;
       z-index: 100;
-      backdrop-filter: blur(10px);
     }
     .header-inner {
       max-width: 1200px;
@@ -52,15 +50,6 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 10px;
-    }
-    .app-header h2 {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      background: linear-gradient(90deg, #fff 0%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
     .header-actions {
       display: flex;
@@ -91,7 +80,7 @@
       background: var(--primary);
       color: var(--on-primary);
       border-color: var(--primary);
-      box-shadow: 0 0 16px rgba(108,143,255,0.4);
+      box-shadow: 0 0 12px rgba(29,78,216,0.3);
     }
     button.btn-save { border-color: var(--success); color: var(--success); }
     button.btn-save:hover { background: rgba(74,222,128,0.12); }
@@ -155,12 +144,12 @@
     }
     .monster-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      box-shadow: var(--shadow-lg);
       border-color: var(--primary);
     }
     .monster-card.has-boost {
-      border-color: rgba(108,143,255,0.5);
-      box-shadow: 0 0 20px var(--primary-glow);
+      border-color: rgba(29,78,216,0.4);
+      box-shadow: 0 0 16px var(--primary-glow);
     }
     .monster-card.filtered-out {
       opacity: 0.2;
@@ -212,7 +201,7 @@
       border-radius: 20px;
       background: var(--primary-glow);
       color: var(--primary);
-      border: 1px solid rgba(108,143,255,0.3);
+      border: 1px solid rgba(29,78,216,0.3);
       white-space: nowrap;
     }
 
@@ -257,8 +246,8 @@
     */
     .step-chip {
       flex: 1;
-      border: 1.5px solid var(--border);
-      background: var(--bg);
+      border: 1.5px solid var(--border-strong);
+      background: var(--surface);
       color: var(--text-muted);
       padding: 7px 0;
       font-size: 13px;
@@ -277,14 +266,14 @@
 
     /* 현재 단계 */
     .step-chip[data-state="cur"] {
-      background: #3a3f52;
-      border-color: #6b7280;
-      color: #e8eaf6;
+      background: var(--gray-600);
+      border-color: var(--gray-600);
+      color: #ffffff;
     }
     /* 현재~목표 사이 범위 */
     .step-chip[data-state="range"] {
-      background: rgba(108,143,255,0.15);
-      border-color: rgba(108,143,255,0.35);
+      background: rgba(29,78,216,0.12);
+      border-color: rgba(29,78,216,0.3);
       color: var(--primary);
     }
     /* 목표 단계 */
@@ -292,14 +281,14 @@
       background: var(--primary);
       border-color: var(--primary);
       color: var(--on-primary);
-      box-shadow: 0 0 10px rgba(108,143,255,0.5);
+      box-shadow: 0 0 8px rgba(29,78,216,0.4);
     }
     /* 현재=목표 (동일) */
     .step-chip[data-state="both"] {
       background: var(--primary);
       border-color: var(--primary);
       color: var(--on-primary);
-      box-shadow: inset 0 0 0 2px rgba(17,24,39,0.45), 0 0 10px rgba(108,143,255,0.4);
+      box-shadow: inset 0 0 0 2px rgba(17,24,39,0.35), 0 0 8px rgba(29,78,216,0.35);
     }
 
     /* 칩 아래 점으로 현재/목표 구분 표시 */
@@ -333,9 +322,9 @@
       margin-right: 3px;
       vertical-align: middle;
     }
-    .legend-cur  .legend-dot { background: #3a3f52; border: 1.5px solid #6b7280; }
+    .legend-cur  .legend-dot { background: var(--gray-600); border: 1.5px solid var(--gray-600); }
     .legend-tar  .legend-dot { background: var(--primary); }
-    .legend-both .legend-dot { background: linear-gradient(135deg,#3a3f52,var(--primary)); }
+    .legend-both .legend-dot { background: linear-gradient(135deg,var(--gray-600),var(--primary)); }
 
     /* 카드 결과 영역 */
     .card-result {
@@ -376,8 +365,8 @@
     /* 패치 비교 */
     .card-compare {
       display: none;
-      background: rgba(108,143,255,0.06);
-      border: 1px solid rgba(108,143,255,0.2);
+      background: rgba(29,78,216,0.05);
+      border: 1px solid rgba(29,78,216,0.18);
       border-radius: 12px;
       padding: 10px 14px;
       font-size: 12px;
@@ -400,7 +389,7 @@
       background: var(--surface);
       border-top: 1px solid var(--border);
       z-index: 200;
-      box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
       transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
     }
     .summary-handle {
@@ -453,9 +442,9 @@
     }
     .summary-card-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 600; letter-spacing: 0.3px; }
     .summary-card-val { font-size: 14px; font-weight: 700; color: var(--text); }
-    .summary-card.gold-card { border-color: rgba(245,200,66,0.3); background: var(--gold-dim); }
+    .summary-card.gold-card { border-color: var(--accent); background: var(--gold-dim); }
     .summary-card.gold-card .summary-card-val { color: var(--gold); }
-    .summary-card.blue-card { border-color: rgba(108,143,255,0.3); background: var(--primary-glow); }
+    .summary-card.blue-card { border-color: rgba(29,78,216,0.3); background: var(--primary-glow); }
     .summary-card.blue-card .summary-card-val { color: var(--primary); font-size: 13px; }
     .summary-card.full { grid-column: 1 / -1; }
 
@@ -466,7 +455,7 @@
       border-radius: 20px;
       background: var(--primary-glow);
       color: var(--primary);
-      border: 1px solid rgba(108,143,255,0.3);
+      border: 1px solid rgba(29,78,216,0.3);
       display: none;
     }
     .sort-badge.visible { display: inline-block; }
@@ -481,6 +470,8 @@
 
     /* ── 모바일 ── */
     @media (max-width: 600px) {
+      .app-header h1 { flex: 1 1 100%; font-size: 16px; }
+      .header-actions { flex: 1 1 100%; }
       .card-grid { grid-template-columns: 1fr; gap: 12px; }
       .main-wrap { padding: 14px 10px; }
       .step-chip { width: 36px; min-height: 40px; padding: 7px 0; font-size: 14px; }
@@ -488,7 +479,6 @@
       .result-boost { font-size: 20px; }
       .summary-body { grid-template-columns: 1fr; }
       .summary-card.full { grid-column: 1; }
-      .app-header h2 { font-size: 17px; }
     }
     @media (min-width: 601px) and (max-width: 900px) {
       .card-grid { grid-template-columns: repeat(2, 1fr); }
@@ -500,6 +490,8 @@
 
   <!-- 헤더 -->
   <div class="app-header">
+    <div class="header-inner">
+      <h1><span class="header-icon" aria-hidden="true">♞</span> 각성·폭주 기대상승치 계산기 💎</h1>
       <div class="header-actions">
         <button class="btn-save" onclick="saveData()">💾 저장</button>
         <button onclick="loadData()">📂 불러오기</button>

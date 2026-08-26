@@ -13,12 +13,11 @@
       --radius: 10px; --radius-sm: 6px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Noto Sans KR', sans-serif, system-ui; background: var(--bg); color: var(--text); font-size: 14px; padding: 16px; min-height: 100vh; }
+    body { font-family: 'Noto Sans KR', sans-serif, system-ui; background: var(--bg); color: var(--text); font-size: 14px; padding: 20px 16px; max-width: 640px; margin: 0 auto; min-height: 100vh; }
 
-    h1 { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
     .subtitle { font-size: 12px; color: var(--text2); text-align: center; line-height: 1.5; margin-bottom: 16px; }
 
-    .controls { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 14px; }
+    .controls { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
     .controls-label { font-size: 11px; font-weight: 500; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
     .btn-group { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .btn { min-height: 44px; padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface2); font-size: 12px; font-family: inherit; color: var(--text2); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
@@ -43,8 +42,8 @@
     .mode-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
 
     /* 그리드 */
-    .grids-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-    .grid-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; }
+    .grids-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    .grid-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
     .grid-card h3 { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 8px; text-align: center; }
     .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 100%; }
     .cell {
@@ -68,7 +67,7 @@
     .cell[aria-disabled="true"] { cursor: default; }
 
     /* 범례 */
-    .legend { display: flex; flex-wrap: wrap; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 14px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 16px; }
     .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
     .legend-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 
@@ -88,7 +87,6 @@
     @media (min-width: 480px) {
       .grid { gap: 3px; }
       .cell { font-size: 12px; }
-      h1 { font-size: 20px; }
     }
     @media (max-width: 479px) {
       .grids-wrap { grid-template-columns: 1fr; }
@@ -98,7 +96,9 @@
 </head>
 <body>
 
-  <h1>진리의 길 최적 경로</h1>
+  <header class="app-header">
+    <h1><span class="header-icon" aria-hidden="true">⌁</span> 진리의 길 최적 경로</h1>
+  </header>
   <p class="subtitle">시작점·도착점 지정 후 장애물/등급 설정 → 최적 경로 찾기<br>키보드: 방향키 이동 · Enter/Space 적용 · Shift+Enter 등급 변경<br>모바일: 길게 눌러 등급 변경 / PC: 우클릭으로 등급 변경</p>
 
   <div class="controls">
