@@ -900,17 +900,16 @@
       return (aE/aS)*(fE/fS);
     }
     function getFrenzyBoost(monster,eff,fC,fT,old=false){
-      if(!eff)return 1;
-      const d=getEffData(monster,eff,old);if(!d)return 1;
+      if(!eff)return 0;
+      const d=getEffData(monster,eff,old);if(!d)return 0;
       const fS=fC?d.frenzy[fC-1]||d.base:d.base;
       const fE=fT?d.frenzy[fT-1]||d.base:d.base;
       return fE/fS;
     }
 
-    // 여러 효과를 가진 신수는 각 효과의 "상승분"을 합산한다.
-    // 기본 배율 1은 효과마다 중복해서 더하지 않도록 한 번만 포함한다.
+    // 여러 효과를 가진 신수는 각 효과의 배율을 그대로 합산한다.
     function combineBoosts(...boosts){
-      return 1+boosts.reduce((sum,boost)=>sum+(Number(boost)||1)-1,0);
+      return boosts.reduce((sum,boost)=>sum+(Number(boost)||0),0);
     }
 
     function calculate(){
@@ -930,8 +929,8 @@
         const sum={정수:rA.정수,파멸의조각:rA.파멸의조각,각성의돌:rA.각성의돌+rF.각성의돌,파멸의돌:rA.파멸의돌+rF.파멸의돌};
         const gem=sum.정수*price.정수+sum.파멸의조각*price.파멸의조각+sum.각성의돌*price.각성의돌+sum.파멸의돌*price.파멸의돌;
 
-        const b1=getBoost(name,eff1,aC,aT,fC,fT);
-        const b2=getBoost(name,eff2,aC,aT,fC,fT);
+        const b1=eff1?getBoost(name,eff1,aC,aT,fC,fT):0;
+        const b2=eff2?getBoost(name,eff2,aC,aT,fC,fT):0;
         const boostVal=combineBoosts(b1,b2);
         const hasBoost=boostVal>1.001;
         const eff=gem>0?(boostVal/gem).toFixed(6):0;
