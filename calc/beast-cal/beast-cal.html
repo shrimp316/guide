@@ -907,6 +907,12 @@
       return fE/fS;
     }
 
+    // 여러 효과를 가진 신수는 각 효과의 "상승분"을 합산한다.
+    // 기본 배율 1은 효과마다 중복해서 더하지 않도록 한 번만 포함한다.
+    function combineBoosts(...boosts){
+      return 1+boosts.reduce((sum,boost)=>sum+(Number(boost)||1)-1,0);
+    }
+
     function calculate(){
       let tot={정수:0,파멸의조각:0,각성의돌:0,파멸의돌:0,gem:0};
       let totalOldF=1,totalNewF=1,totalCurOld=1,totalCurNew=1;
@@ -926,16 +932,16 @@
 
         const b1=getBoost(name,eff1,aC,aT,fC,fT);
         const b2=getBoost(name,eff2,aC,aT,fC,fT);
-        const boostVal=Math.max(b1,b2);
+        const boostVal=combineBoosts(b1,b2);
         const hasBoost=boostVal>1.001;
         const eff=gem>0?(boostVal/gem).toFixed(6):0;
 
         // 패치 비교
-        const oldF=Math.max(getFrenzyBoost(name,eff1,fC,fT,true),getFrenzyBoost(name,eff2,fC,fT,true));
-        const newF=Math.max(getFrenzyBoost(name,eff1,fC,fT,false),getFrenzyBoost(name,eff2,fC,fT,false));
+        const oldF=combineBoosts(getFrenzyBoost(name,eff1,fC,fT,true),getFrenzyBoost(name,eff2,fC,fT,true));
+        const newF=combineBoosts(getFrenzyBoost(name,eff1,fC,fT,false),getFrenzyBoost(name,eff2,fC,fT,false));
         const deltaPct=oldF>0?((newF/oldF)-1)*100:0;
-        const oldCur=Math.max(getFrenzyBoost(name,eff1,0,fC,true),getFrenzyBoost(name,eff2,0,fC,true));
-        const newCur=Math.max(getFrenzyBoost(name,eff1,0,fC,false),getFrenzyBoost(name,eff2,0,fC,false));
+        const oldCur=combineBoosts(getFrenzyBoost(name,eff1,0,fC,true),getFrenzyBoost(name,eff2,0,fC,true));
+        const newCur=combineBoosts(getFrenzyBoost(name,eff1,0,fC,false),getFrenzyBoost(name,eff2,0,fC,false));
 
         if(oldF>1||newF>1){totalOldF*=oldF;totalNewF*=newF;}
         if(oldCur>1||newCur>1){totalCurOld*=oldCur;totalCurNew*=newCur;}
