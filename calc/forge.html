@@ -326,31 +326,35 @@
 </div>
 
 <!-- 계산 탭 -->
-<div class="tab-panel active" id="tab-calc" role="tabpanel" aria-labelledby="tab-button-calc">
+<div class="tab-panel active" id="tab-calc">
   <div class="calc-section">
-    <label class="section-label" for="item">품목 선택</label>
+    <p class="section-label">품목 선택</p>
     <div class="select-wrapper">
       <select id="item" onchange="calculateTotal()">
         <option value="">-- 선택하세요 --</option>
-        <option value="축복의 정수">축복의 정수</option>
-        <option value="축복의 정수(부스터)">축복의 정수 (부스터)</option>
-        <option value="각성의 돌">각성의 돌</option>
         <option value="마법시계">마법시계</option>
         <option value="마법시계(부스터)">마법시계 (부스터)</option>
         <option value="황금시계">황금시계</option>
-        <option value="두루마리">두루마리</option>
-        <option value="황금두루마리">황금두루마리</option>
+        <option value="축복의 정수">축복의 정수</option>
+        <option value="축복의 정수(부스터)">축복의 정수 (부스터)</option>
+        <option value="각성의 돌">각성의 돌</option>
         <option value="지도">지도</option>
         <option value="황금지도">황금지도</option>
+        <option value="두루마리">두루마리</option>
+        <option value="황금두루마리">황금두루마리</option>
+        <option value="프리즘 스톤">프리즘 스톤</option>
+        <option value="프리즘 큐브">프리즘 큐브</option>
         <option value="파멸의 조각">파멸의 조각</option>
         <option value="파멸의 돌">파멸의 돌</option>
-        <option value="프리즘 스톤">프리즘 스톤</option>
+        <option value="차원 파편">차원 파편</option>
         <option value="차원 스타">차원 스타</option>
-        <option value="프리즘 큐브">프리즘 큐브</option>
+        <option value="붕괴 파편">붕괴 파편</option>
+        <option value="붕괴석">붕괴석</option>
+        
       </select>
     </div>
 
-    <label class="section-label" for="count">개수</label>
+    <p class="section-label">개수</p>
     <div class="count-row">
       <button class="count-btn" onclick="changeCount(-1)">−</button>
       <input type="number" id="count" value="1" min="1" oninput="calculateTotal()">
@@ -358,7 +362,7 @@
     </div>
   </div>
 
-  <div class="result-card" id="resultCard" role="status" aria-live="polite" aria-atomic="true">
+  <div class="result-card" id="resultCard">
     <div class="result-label">총 제련 비용</div>
     <div class="result-empty" id="resultEmpty">품목을 선택하세요</div>
     <div class="result-value" id="resultValue" style="display:none"></div>
@@ -373,7 +377,7 @@
 </div>
 
 <!-- 재화 설정 탭 -->
-<div class="tab-panel" id="tab-prices" role="tabpanel" aria-labelledby="tab-button-prices" hidden>
+<div class="tab-panel" id="tab-prices">
   <p class="section-label">재화 단가 설정</p>
   <p style="font-size:12px; color:var(--text-dim); margin-bottom:14px;">비워두면 기본값 사용 · 0처리 토글로 강제 0 설정 가능</p>
   <div class="materials-grid" id="materialsGrid"></div>
@@ -384,16 +388,17 @@ const defaults = {
   "룬": 0,
   "에테르": 0,
   "마법서": 0.4,
-  "부스터": 0.3,
+  "부스터": 0,
   "프리즘결정": 0,
-  "마법시계": 13.2,
-  "두루마리": 50,
-  "지도": 12,
-  "축복의 정수": 40,
+  "마법시계": 20,
+  "두루마리": 48,
+  "지도": 8,
+  "축복의 정수": 60,
   "파멸의 조각": 0,
-  "각성의 돌": 220,
+  "각성의 돌": 280,
   "차원 파편": 0,
-  "프리즘 스톤": 600
+  "프리즘 스톤": 740,
+  "차원 스타": 1170
 };
 
 const hints = {
@@ -409,26 +414,30 @@ const idMap = {
   "룬":"rune","에테르":"ether","마법서":"book","부스터":"booster",
   "프리즘결정":"prism","마법시계":"clock","지도":"map","두루마리":"scroll",
   "축복의 정수":"drink","파멸의 조각":"doom","각성의 돌":"powerst",
-  "차원 파편":"demen","프리즘 스톤":"prismst"
+  "차원 파편":"demen","프리즘 스톤":"prismst","차원 스타":"demenst"
 };
 
 const recipes = {
-  "축복의 정수": { "룬": 500, "에테르": 250, "마법서": 100 },
+  "축복의 정수": { "에테르": 250, "마법서": 150 },
   "축복의 정수(부스터)": { "부스터": 250 },
-  "각성의 돌": { "룬": 1500, "에테르": 1000, "마법서": 550 },
-  "마법시계": { "룬": 333.3, "마법서": 33.3 },
-  "마법시계(부스터)": { "부스터": 83 },
-  "황금시계": { "룬": 10000, "마법서": 250, "마법시계": 15 },
-  "지도": { "룬": 200, "에테르": 400, "마법서": 30 },
-  "황금지도": { "룬": 15000, "마법서": 550, "지도": 25 },
-  "두루마리": { "룬": 10000, "축복의 정수": 0.3, "지도": 1, "마법서": 66.6 },
-  "황금두루마리": { "룬": 300000, "두루마리": 5, "마법서": 1500 },
-  "파멸의 조각": { "룬": 1000, "마법서": 30, "축복의 정수": 0.2 },
-  "파멸의 돌": { "룬": 5000, "프리즘결정": 1500, "파멸의 조각": 15, "각성의 돌": 1 },
-  "프리즘 스톤": { "에테르": 50000, "마법서": 1500, "프리즘결정": 2500 },
-  "차원 스타": { "룬": 25000, "차원 파편": 50, "프리즘 스톤": 1 },
-  "프리즘 큐브": { "프리즘결정": 2500, "프리즘 스톤": 2, "마법서": 2500 }
+  "각성의 돌": { "축복의 정수": 3, "마법서": 250 },
+  "마법시계": { "마법서" : 50 },
+  "마법시계(부스터)": { "부스터": 66 },
+  "황금시계": { "마법시계": 20, "마법서":150 },
+  "지도": { "마법서":20 },
+  "황금지도": { "지도":5, "축복의 정수": 5, "마법서" : 750 },
+  "두루마리": { "지도":1, "마법서":100 },
+  "황금두루마리": { "두루마리":1, "축복의 정수": 5, "마법서": 1500 },
+  "파멸의 조각": { "룬":500, "마법서": 25 },
+  "파멸의 돌": { "파멸의 조각":5, "각성의 돌":3, "마법서": 500 },
+  "프리즘 스톤": { "프리즘결정":1000, "축복의 정수": 3, "각성의 돌": 2 },
+  "차원 스타": { "차원 파편":15, "각성의 돌":1, "프리즘 스톤":1, "마법서" :375 },
+  "프리즘 큐브": { "프리즘결정": 2500, "프리즘 스톤": 3 },
+  "차원 파편": { "프리즘결정": 30, "마법서":6},
+  "붕괴 파편": { "파멸의 조각": 2.5, "차원 파편":5},
+  "붕괴석": { "붕괴 파편": 2.5, "각성의 돌":2.5, "파멸의 돌":0.5, "차원 스타":0.5}
 };
+
 
 // 재화 설정 카드 생성
 function buildMaterialsGrid() {
