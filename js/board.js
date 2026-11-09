@@ -1,3 +1,4 @@
+import { buildPostLink, copyPostLink } from './post-links.js';
 import { ensureAuth, ensureBoardServices, ensureFirestore, ensureStorage } from './firebase-client.js';
 import { ensureQuill } from './quill-loader.js';
 import {
@@ -21,6 +22,7 @@ let authStateToken = 0;
 let authReadyPromise = null;
 let requestToken = 0;
 let eventsBound = false;
+let postRequestToken = 0;
 let quill = null;
 const boardLoadPromises = new Map();
 let hubPosts = [];
@@ -349,22 +351,25 @@ async function getPost(postId) {
   return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
 }
 
-async function openPost(postId) {
+export async function openPost(postId) {
+  bindBoardEvents();
+  const token = ++postRequestToken;
+  const route = location.href;
+  const isCurrent = () => token === postRequestToken && route === location.href;
   const trigger = document.activeElement;
   await initializeAuth();
   const post = await getPost(postId);
-  if (!post) return showToast('글을 찾을 수 없어요.');
+  if (!isCurrent()) return;
+  if (!post) return showToast('글을 찾을 수 없어요. 삭제되었거나 링크가 올바르지 않습니다.');
   const canEdit = isAdmin || (currentUser && currentUser.email === post.authorEmail);
   const date = post.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '';
-  document.getElementById('postModalTitle').textContent = post.title;
-  document.getElementById('postModalMeta').innerHTML = `${escHtml(post.authorName)}${post.isAdmin ? ' <span class="admin-badge">✦ 운영자</span>' : ''} · ${date}`;
-  document.getElementById('postModalBody').innerHTML = post.body;
   const buttons = [];
   let liked = false;
   if (currentUser) {
     const { db, sdk } = await ensureFirestore();
     liked = (await sdk.getDoc(sdk.doc(db, 'posts', postId, 'likes', currentUser.uid))).exists();
   }
+  buttons.push(`<button class="post-action-btn" type="button" data-board-action="share" data-post-id="${escHtml(postId)}">공유 링크 복사</button>`);
   buttons.push(`<button class="like-btn" type="button" data-board-action="like" data-post-id="${escHtml(post.id)}" aria-pressed="${String(liked)}">${liked ? '♥' : '♡'} 추천 <span>${Number(post.likeCount) || 0}</span></button>`);
   if (post.category === 'board-suggest' && isAdmin) {
     buttons.push(`<button class="admin-done-btn${post.done ? ' undo' : ''}" type="button" data-board-action="toggle-done" data-post-id="${escHtml(post.id)}" data-done="${String(!post.done)}">${post.done ? '↩ 완료 취소' : '✓ 완료 표시'}</button>`);
@@ -376,6 +381,10 @@ async function openPost(postId) {
     buttons.push(`<button class="post-action-btn" type="button" data-board-action="edit-confirm" data-post-id="${escHtml(post.id)}">수정</button>`);
     buttons.push(`<button class="post-action-btn danger" type="button" data-board-action="delete-confirm" data-post-id="${escHtml(post.id)}">삭제</button>`);
   }
+  if (!isCurrent()) return;
+  document.getElementById('postModalTitle').textContent = post.title;
+  document.getElementById('postModalMeta').innerHTML = `${escHtml(post.authorName)}${post.isAdmin ? ' <span class="admin-badge">✦ 운영자</span>' : ''} · ${date}`;
+  document.getElementById('postModalBody').innerHTML = post.body;
   document.getElementById('postModalActions').innerHTML = buttons.join('');
   openAccessibleModal('postModal', trigger);
 }
@@ -571,6 +580,8 @@ function runAction(action, target) {
   const postId = target.dataset.postId;
   if (action === 'write') return openWriteModal(target.dataset.category);
   if (action === 'open') return openPost(postId);
+  if (action === 'share') return copyPostLink(buildPostLink(location.href, postId))
+    .then(copied => { if (copied) showToast('공유 링크를 복사했어요.'); });
   if (action === 'edit') return openEditModal(postId);
   if (action === 'delete') return deletePost(postId);
   if (action === 'edit-confirm') return confirmAnonymous(postId, 'edit');
@@ -582,6 +593,7 @@ function runAction(action, target) {
 export function bindBoardEvents() {
   if (eventsBound) return;
   eventsBound = true;
+  window.addEventListener('brick-post-close', () => { postRequestToken += 1; });
   document.addEventListener('click', event => {
     const target = event.target.closest('[data-board-action]');
     if (!target) return;
@@ -590,7 +602,10 @@ export function bindBoardEvents() {
     if (action === 'close-write') return closeAccessibleModal('writeModal');
     if (action === 'submit') return submitPost();
     if (action === 'upload') return uploadImage();
-    runAction(action, target);
+    Promise.resolve(runAction(action, target)).catch(error => {
+      console.error('게시글 작업 실패:', error);
+      showToast('요청을 처리하지 못했어요. 잠시 후 다시 시도해주세요.');
+    });
   });
   document.getElementById('guideIndexFilter')?.addEventListener('change', renderGuideHub);
   document.getElementById('guideSort')?.addEventListener('change', renderGuideHub);

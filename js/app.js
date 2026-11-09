@@ -1,3 +1,5 @@
+import { parsePostRoute } from './post-links.js';
+
 const SEARCH_ITEMS = [
   { name:'신 이전', desc:'신 이전 구간 가이드', type:'가이드', page:'guide-pre-god' },
   { name:'신1 ~ 신4', desc:'신1부터 신4까지 구간 가이드', type:'가이드', page:'guide-god1-4' },
@@ -52,6 +54,7 @@ export const GUIDE_HUBS = {
 };
 
 let currentPage = 'home';
+let renderedHash = null;
 let boardModulePromise;
 let officialUpdatesModulePromise;
 let adminModulePromise;
@@ -123,7 +126,7 @@ export function openAccessibleModal(id, trigger = document.activeElement) {
   requestAnimationFrame(() => overlay.querySelector('.modal')?.focus());
 }
 
-export function closeAccessibleModal(id, restoreFocus = true) {
+export function closeAccessibleModal(id, restoreFocus = true, clearPostLink = true) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   overlay.classList.remove('show');
@@ -133,6 +136,13 @@ export function closeAccessibleModal(id, restoreFocus = true) {
   const trigger = modalTriggers.get(id);
   if (restoreFocus && trigger?.isConnected) trigger.focus();
   modalTriggers.delete(id);
+  if (id === 'postModal') {
+    window.dispatchEvent(new Event('brick-post-close'));
+    const route = parsePostRoute(location.hash);
+    if (clearPostLink && route.postId) {
+      history.replaceState({ page: route.page }, '', `${location.pathname}${location.search}#${route.page}`);
+    }
+  }
 }
 
 function closeNavigation() {
@@ -180,6 +190,18 @@ async function performAdminPageLoad() {
 }
 
 function showPage(page) {
+  renderedHash = location.hash;
+  closeAccessibleModal('postModal', false, false);
+  const routeHash = location.hash;
+  const { postId } = parsePostRoute(routeHash);
+  if (postId && (GUIDES[page] || GUIDE_HUBS[page])) {
+    getBoardModule().then(board => {
+      if (location.hash === routeHash && isPageActive(page)) return board.openPost(postId);
+    }).catch(error => {
+      console.error('공유 글 로드 실패:', error);
+      if (location.hash === routeHash) showToast('글을 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+    });
+  }
   currentPage = page;
   document.querySelectorAll('.view,.view-iframe').forEach(view => view.classList.remove('active'));
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
@@ -412,7 +434,11 @@ function bindEvents() {
     document.getElementById('menuBtn').setAttribute('aria-label', open ? '메뉴 닫기' : '메뉴 열기');
   });
   document.getElementById('overlay').addEventListener('click', closeNavigation);
-  window.addEventListener('popstate', event => showPage(event.state?.page || location.hash.replace('#', '') || 'home'));
+  window.addEventListener('popstate', () => showPage(parsePostRoute(location.hash).page));
+  window.addEventListener('hashchange', () => {
+    // History traversal can emit both events; only load the shared post once.
+    if (renderedHash !== location.hash) showPage(parsePostRoute(location.hash).page);
+  });
 
   const focusableSelector = ['a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])', 'select:not([disabled])', 'textarea:not([disabled])', '[contenteditable="true"]', '[tabindex]:not([tabindex="-1"])'].join(',');
   document.addEventListener('keydown', event => {
@@ -479,7 +505,7 @@ function bindEvents() {
 }
 
 bindEvents();
-const initialPage = location.hash.replace('#', '') || 'home';
+const initialPage = parsePostRoute(location.hash).page;
 history.replaceState({ page: initialPage }, '', location.href);
 
 if (/kakaotalk|line|naver|instagram|facebook|twitter/i.test(navigator.userAgent)) {
