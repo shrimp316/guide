@@ -3,6 +3,7 @@ import { ensureAuth, ensureBoardServices, ensureFirestore, ensureStorage } from 
 import { ensureQuill } from './quill-loader.js';
 import {
   GUIDES,
+  GUIDE_HUBS,
   closeAccessibleModal,
   escHtml,
   getModalTrigger,
@@ -284,6 +285,7 @@ export async function loadGuideHub(page, group) {
   bindBoardEvents();
   currentCategory = page;
   currentHubGroup = group;
+  document.getElementById('guideWriteBtn').disabled = false;
   const token = ++requestToken;
   document.getElementById('guideHubList').innerHTML = '<p class="board-status">불러오는 중...</p>';
   try {
@@ -451,16 +453,33 @@ async function initializeEditor(body = '') {
   }
 }
 
-async function openWriteModal(category) {
+function setWriteCategory(category, group = null) {
+  const categories = group === null ? [category] : guideCategoriesForGroup(group);
+  const select = document.getElementById('writeCategory');
+  select.innerHTML = categories.map(value => `<option value="${escHtml(value)}">${escHtml(GUIDES[value].title)}</option>`).join('');
+  select.value = categories.includes(category) ? category : categories[0];
+  document.getElementById('writeCategoryRow').hidden = group === null;
+}
+
+async function openWriteModal(category = currentCategory) {
+  const trigger = document.activeElement;
+  try {
+    await initializeAuth();
+  } catch (error) {
+    console.error('글 작성 준비 실패:', error);
+    showToast('글 작성을 준비하지 못했습니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  if (!isPageActive(category)) return;
   document.getElementById('writeModalTitle').textContent = '글 작성';
   document.getElementById('writePostId').value = '';
-  document.getElementById('writeCategory').value = category;
+  setWriteCategory(category, GUIDE_HUBS[category]?.group ?? null);
   document.getElementById('writeNickname').value = currentUser?.displayName || '';
   document.getElementById('writePassword').value = '';
   document.getElementById('writeTitleInput').value = '';
   document.getElementById('writePwRow').style.display = currentUser ? 'none' : '';
   document.getElementById('writeNicknameRow').style.display = currentUser ? 'none' : '';
-  openAccessibleModal('writeModal');
+  openAccessibleModal('writeModal', trigger);
   await initializeEditor('');
 }
 
@@ -470,7 +489,7 @@ async function openEditModal(postId) {
   if (!post) return;
   document.getElementById('writeModalTitle').textContent = '글 수정';
   document.getElementById('writePostId').value = postId;
-  document.getElementById('writeCategory').value = post.category;
+  setWriteCategory(post.category);
   document.getElementById('writeNickname').value = post.authorName;
   document.getElementById('writePassword').value = '';
   document.getElementById('writeTitleInput').value = post.title;
@@ -489,6 +508,7 @@ async function submitPost() {
   const body = quill?.root.innerHTML.trim() || '';
   const nickname = currentUser ? (currentUser.displayName || currentUser.email) : document.getElementById('writeNickname').value.trim();
   const password = document.getElementById('writePassword').value;
+  if (!Object.hasOwn(GUIDES, category)) return showToast('게시할 분류를 선택해주세요.');
   if (!title) return showToast('제목을 입력해주세요.');
   if (!body) return showToast('내용을 입력해주세요.');
   if (!currentUser && !nickname) return showToast('닉네임을 입력해주세요.');

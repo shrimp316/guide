@@ -125,7 +125,7 @@
     </div>
 
     <div class="view" id="view-guide-hub">
-      <div class="guide-header"><div><h2 class="guide-title" id="guideHubTitle">전체 가이드</h2><p class="guide-desc" id="guideHubDesc">모든 가이드를 한곳에서 확인하세요.</p></div></div>
+      <div class="guide-header"><div><h2 class="guide-title" id="guideHubTitle">전체 가이드</h2><p class="guide-desc" id="guideHubDesc">모든 가이드를 한곳에서 확인하세요.</p></div><button class="write-btn" id="guideWriteBtn" type="button" data-board-action="write" disabled>✏ 글 작성</button></div>
       <div class="guide-filters" aria-label="가이드 필터와 정렬">
         <div class="field"><label for="guideIndexFilter">인덱스</label><select id="guideIndexFilter"><option value="">전체 인덱스</option></select></div>
         <div class="field"><label for="guideSort">정렬</label><select id="guideSort"><option value="latest">최신순</option><option value="popular">추천순</option></select></div>
@@ -198,7 +198,10 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="writePostId">
-      <input type="hidden" id="writeCategory">
+      <div class="field" id="writeCategoryRow" hidden>
+        <label for="writeCategory">게시할 분류</label>
+        <select id="writeCategory"></select>
+      </div>
       <div class="field-row" id="writeNicknameRow">
         <div class="field">
           <label for="writeNickname">닉네임</label>
