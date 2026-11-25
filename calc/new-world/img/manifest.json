@@ -1,0 +1,100 @@
+{
+ "bricks": {
+  "90001": [
+   "img/br_nw_flame.webp",
+   "img/br_nw_charcoal.webp",
+   "img/br_nw_lantern.webp",
+   "img/br_nw_chain.webp",
+   "img/br_nw_star.webp",
+   "img/br_nw_oil_barrel.webp",
+   "img/br_nw_coal.webp",
+   "img/br_nw_blaze.webp",
+   "img/br_nw_basalt.webp",
+   "img/br_nw_lava.webp"
+  ],
+  "90002": [
+   "img/br_nw_water.webp",
+   "img/br_nw_icicle.webp",
+   "img/br_nw_conch_shell.webp",
+   "img/br_nw_ice.webp",
+   "img/br_nw_iceberg.webp",
+   "img/br_nw_snow.webp",
+   "img/br_nw_coral.webp",
+   "img/br_nw_snowman.webp",
+   "img/br_nw_shell.webp",
+   "img/br_nw_turtleshell.webp"
+  ],
+  "90003": [
+   "img/br_nw_feather.webp",
+   "img/br_nw_candle.webp",
+   "img/br_nw_book.webp",
+   "img/br_nw_crystal.webp",
+   "img/br_nw_bone.webp",
+   "img/br_nw_demon_stone.webp",
+   "img/br_nw_world_tree_trunk.webp",
+   "img/br_nw_lapis_lazuli.webp",
+   "img/br_nw_ruby.webp",
+   "img/br_nw_soul_stone.webp"
+  ]
+ },
+ "cards": {
+  "6801": "img/cd_nw_phoenix_egg.webp",
+  "6802": "img/cd_nw_loop_of_passion.webp",
+  "6803": "img/cd_nw_hand_of_god.webp",
+  "6811": "img/cd_nw_eye_of_the_deep_sea.webp",
+  "6812": "img/cd_nw_eternal_snow.webp",
+  "6813": "img/cd_nw_holy_water.webp",
+  "6821": "img/cd_nw_mystic_carpet.webp",
+  "6822": "img/cd_nw_magic_bean.webp",
+  "6823": "img/cd_nw_tome_of_death.webp"
+ },
+ "themes": {
+  "90001": "img/theme_fire.webp",
+  "90002": "img/theme_ice.webp",
+  "90003": "img/theme_magic.webp"
+ },
+ "memberships": {
+  "ms_ads": "img/ms_ads.webp",
+  "ms_booster": "img/ms_booster.webp",
+  "ms_mission": "img/ms_mission.webp",
+  "ms_power": "img/ms_power.webp",
+  "ms_soul": "img/ms_soul.webp",
+  "ms_science": "img/ms_science.webp",
+  "ms_quantum": "img/ms_quantum.webp",
+  "nw_pass": "img/nw_pass.webp"
+ },
+ "currency": {
+  "gem": "img/gem.webp",
+  "world_crystal": "img/world_crystal.webp",
+  "time_leap": "img/time_leap.webp",
+  "card_frame_normal": "img/card_frame_normal.webp",
+  "card_frame_epic": "img/card_frame_epic.webp",
+  "card_frame_legendary": "img/card_frame_legendary.webp",
+  "card_frame_golden": "img/card_frame_golden.webp"
+ },
+ "extra": {
+  "theme_top_fire": "img/theme_fire_top.webp",
+  "theme_center_fire": "img/theme_fire_center.webp",
+  "theme_top_ice": "img/theme_ice_top.webp",
+  "theme_center_ice": "img/theme_ice_center.webp",
+  "theme_top_magic": "img/theme_magic_top.webp",
+  "theme_center_magic": "img/theme_magic_center.webp",
+  "dimensional_leap": "img/dimensional_leap.webp",
+  "world_crystal_point": "img/world_crystal_point.webp",
+  "rank_station_level": "img/rank_station_level.webp"
+ },
+ "rank_frames": {
+  "fire": "img/rank_frame_fire.webp",
+  "ice": "img/rank_frame_ice.webp",
+  "magic": "img/rank_frame_magic.webp"
+ },
+ "rank_font": {
+  "file": "img/font_rank.woff2",
+  "family": "fontopoFONTOPO",
+  "size_ratio": 0.2,
+  "outline_ratio": 0.012,
+  "outline": "#000",
+  "color": "#fff",
+  "offset_x_ratio": 0.01
+ }
+}

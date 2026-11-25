@@ -1,0 +1,521 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>신세계 계산기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+@font-face{font-family:'fontopoFONTOPO';src:url('img/font_rank.woff2') format('woff2');font-display:swap}
+@property --acc{syntax:'<color>';inherits:true;initial-value:#FF6A2B}
+:root{--bg:#F1F2F6;--card:#FFFFFF;--fg:#171A22;--mute:#6B7180;--line:#DCDFE6;--chip:#E9EBF1;--ok:#22B573;--bad:#E5484D;--ink:#14110F;--acc:#FF6A2B;color-scheme:light;transition:--acc .25s}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10131A;--card:#191D26;--fg:#ECEEF3;--mute:#8B92A3;--line:#2A303C;--chip:#232834;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10131A;--card:#191D26;--fg:#ECEEF3;--mute:#8B92A3;--line:#2A303C;--chip:#232834;color-scheme:dark}
+:root[data-nw="fire"]{--acc:#FF6A2B}
+:root[data-nw="ice"]{--acc:#3CC8F0}
+:root[data-nw="magic"]{--acc:#A57BFF}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.45 'Noto Sans KR',system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif}
+.num,table,.hero b,.brick .tm{font-family:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Consolas,monospace;font-variant-numeric:tabular-nums}
+.disp,h1,.hero strong{font-family:'Black Han Sans','Noto Sans KR','Malgun Gothic',system-ui,sans-serif;font-weight:400}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+header,main,.bar-in{max-width:1080px;margin-inline:auto}
+header,main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:6px}
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:6}
+h1{font-size:20px;margin:0;letter-spacing:-.01em}
+h1{margin:0}
+.tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);max-width:1080px;margin-inline:auto;padding:6px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;height:56px;padding:4px;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+.tabs .ind{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:14px;background:var(--acc);transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+.tabs[data-tab=gems] .ind{transform:translateX(100%)}
+.tabs a{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;color:var(--mute);text-decoration:none;font-weight:700;font-size:16.5px;white-space:nowrap;transition:color .2s}
+.tabs a svg,.tabs a img{width:24px;height:24px;flex:none;object-fit:contain}
+.tabs a img{opacity:.75;transition:opacity .2s}
+.tabs a[aria-selected=true]{color:var(--ink)}
+.tabs a[aria-selected=true] img{opacity:1}
+main{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))}
+.layout{display:grid;gap:12px}
+@media(min-width:880px){.layout{grid-template-columns:380px 1fr;align-items:start}.cond{position:sticky;top:12px}}
+.panel{background:var(--card);border-radius:16px;padding:16px}
+.lbl{font-size:12px;font-weight:700;color:var(--mute);letter-spacing:.04em;margin:18px 0 8px}
+.lbl:first-child{margin-top:0}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:0 4px 8px;border-radius:12px;border:2px solid var(--c);color:var(--fg);font-size:20px;position:relative;overflow:hidden;background:color-mix(in srgb,var(--c) 10%,transparent);transition:background .2s,color .2s}
+.tile img{width:40px;height:40px;object-fit:contain;position:relative}
+.tile .top{position:absolute;inset:0 0 auto 0;height:14px;background-size:cover;background-position:center;opacity:.9}
+.tile .nm{position:relative;font-size:18px;line-height:1.1}
+.tile[aria-pressed=true]{background:var(--c);color:var(--ink)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--chip);border-radius:12px;padding:3px}
+.seg button{min-height:56px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;color:var(--mute);font-size:12px;font-weight:500}
+.seg button b{font-size:22px;font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--fg)}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.seg button[aria-pressed=true] b{color:var(--fg);text-decoration:underline;text-decoration-color:var(--acc);text-decoration-thickness:3px;text-underline-offset:4px}
+.cardrow .cn{display:flex;align-items:center;gap:10px;min-width:0}
+.cardrow img,.chip img{flex:none;object-fit:contain}
+.cardrow img{width:44px;height:44px}
+.chip img{width:22px;height:22px}
+.chip small{font-size:11px;font-weight:700;opacity:.8}
+.days{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.days .chip{min-height:36px;padding:0 12px;font-size:13px}
+.cardrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px}
+.cardrow+.cardrow{border-top:1px solid var(--line)}
+.step{display:flex;align-items:center;gap:2px}
+.step button{width:44px;height:44px;border-radius:10px;background:var(--chip);font-size:20px;line-height:1}
+.step button:disabled{opacity:.35;cursor:default}
+.step span{min-width:52px;text-align:center;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border-radius:22px;background:var(--chip);color:var(--mute);font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:background .15s}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--ink)}
+.chip.all{font-weight:700}
+.chip b{font-weight:500}
+.chip{white-space:nowrap}
+#gchips,#schips{display:grid;justify-items:start;gap:6px}
+.chip.static{font-size:13px;padding-left:12px;padding-right:12px;white-space:normal;text-align:left;line-height:1.25;padding-top:6px;padding-bottom:6px;min-height:36px;color:var(--fg);cursor:default}
+.advbtn{margin-top:18px;width:100%;min-height:44px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:6px;color:var(--mute)}
+.advbtn::after{content:'▾';transition:transform .2s}
+.advbtn[aria-expanded=true]::after{transform:rotate(180deg)}
+.adv{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding-top:8px}
+.adv input[type=number],.adv input[type=datetime-local]{font:inherit;font-family:'IBM Plex Mono',monospace;color:var(--fg);background:var(--chip);border:0;border-radius:10px;padding:0 10px;min-height:44px;width:140px;text-align:right}
+.adv input[type=datetime-local]{width:100%;grid-column:1/-1;text-align:left}
+.adv .chips{grid-column:1/-1}
+[hidden]{display:none!important}
+.simonly .lbl{margin-top:18px}
+.gembox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gembox img{width:28px;height:28px;object-fit:contain}
+.gembox input{font:inherit;font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--fg);background:var(--chip);border:0;border-radius:10px;padding:0 10px;min-height:44px;width:116px;text-align:right}
+.gembox .chip{min-height:36px;padding:0 12px;font-size:13px}
+main[data-tab=gems] .simonly,main[data-tab=sim] #r-gems,main[data-tab=gems] #r-sim{display:none}
+.hero{padding:4px 0 16px}
+.hero strong{display:block;font-size:40px;line-height:1.1;letter-spacing:-.01em}
+.hero.ok strong{color:var(--fg)}
+.hero.bad strong{color:var(--bad)}
+.hero .sub{margin-top:6px;color:var(--mute);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.hero .sub .tag{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--fg)}
+.hero .sub .tag::before{content:'';width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.hero.bad .sub .tag::before{background:var(--bad)}
+.wall{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.brick{min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--mute);font-size:11px;line-height:1.2}
+.brick .fr{position:relative;width:100%;max-width:76px;display:flex;align-items:center;justify-content:center;min-height:36px;border-radius:5px;border:1.5px dashed var(--line);transition:background .3s,border-color .3s}
+.brick .rk{font-family:'Black Han Sans','Noto Sans KR',system-ui,sans-serif;font-size:18px;line-height:1;color:var(--mute);transition:color .3s}
+.brick .tm{font-size:11px;font-family:'IBM Plex Mono',ui-monospace,monospace;min-height:13px}
+.brick.on .tm{color:var(--fg)}
+.brick.on:not(.hasimg) .fr{background:var(--acc);border:1.5px solid var(--acc);box-shadow:inset 0 -5px 0 rgba(0,0,0,.18),inset 0 2px 0 rgba(255,255,255,.28)}
+.brick.on:not(.hasimg) .rk{color:var(--ink)}
+.brick.goal:not(.on):not(.hasimg) .fr{border-style:solid;border-color:var(--acc)}
+.brick.hasimg .fr{border:0;min-height:0}
+.brick.hasimg .fr{container-type:inline-size}
+.brick.hasimg .rk{position:absolute;font-family:'fontopoFONTOPO','Black Han Sans','Noto Sans KR',sans-serif;font-size:20cqw;transform:translateX(1cqw);-webkit-text-stroke:2.4cqw #000;paint-order:stroke fill}
+.brick.hasimg:not(.on) .rk{-webkit-text-stroke:0}
+.brick.hasimg img{width:100%;aspect-ratio:1;object-fit:contain;transition:filter .3s,opacity .3s}
+.brick.hasimg:not(.on) img{filter:grayscale(1);opacity:.3}
+.brick.hasimg.on .rk{color:#fff}
+.brick.hasimg.goal img{filter:drop-shadow(0 0 5px var(--acc)) drop-shadow(0 0 1px var(--acc));opacity:1}
+.brick.hasimg.goal:not(.on) img{opacity:.75}
+.brick.goal:not(.on) .rk{color:var(--fg)}
+.brick.on .fr{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.8);opacity:.3}60%{transform:scale(1.06)}100%{transform:none;opacity:1}}
+details{margin-top:14px;border-top:1px solid var(--line)}
+summary{list-style:none;min-height:48px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;color:var(--mute);font-weight:700}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'▾'}
+details[open] summary::after{content:'▴'}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px}
+th,td{text-align:left;padding:7px 4px;border-top:1px solid var(--line)}
+th{color:var(--mute);font-weight:500;border-top:0;font-family:'Noto Sans KR',sans-serif}
+td:last-child,th:last-child{text-align:right}
+td.ok{color:var(--ok)}td.bad{color:var(--bad)}
+.gcard{display:flex;align-items:center;gap:14px;border:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 13%,var(--card));border-radius:18px;padding:16px;margin-bottom:12px}
+.gcard.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--card))}
+.gcard .gico{width:60px;height:60px;object-fit:contain;flex:none}
+.gcard.bad .gico{filter:grayscale(1);opacity:.6}
+.gtxt{min-width:0}
+.gnumrow{word-break:keep-all;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 6px}
+.gnum{font-family:'Black Han Sans','Noto Sans KR',system-ui,sans-serif;font-size:44px;line-height:1.05;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.gnum.t{font-size:30px}
+.gnum.rng{font-size:26px;white-space:nowrap}
+@media(min-width:520px){.gnum{font-size:52px}.gnum.t{font-size:36px}.gnum.rng{font-size:34px}}
+.gunit{font-size:15px;font-weight:700;color:var(--mute)}
+.gline{margin-top:6px;color:var(--fg);font-size:14px}
+.gline small{color:var(--mute);font-size:12px}
+.graph{position:relative;margin-top:18px}
+.graph svg{display:block;width:100%;height:220px;overflow:visible}
+.graph text{font:10.5px 'IBM Plex Mono',ui-monospace,monospace;fill:var(--mute)}
+.graph .hit{fill:transparent;cursor:pointer;outline:none}
+.graph .hit:focus-visible{stroke:var(--fg);stroke-width:2}
+.tip{position:absolute;pointer-events:none;transform:translate(-50%,-100%);background:var(--fg);color:var(--bg);padding:4px 8px;border-radius:6px;font-size:12px;white-space:nowrap;z-index:2}
+.saved{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:12px;background:var(--chip);color:var(--mute);font-size:12px}
+.empty{color:var(--mute);padding:40px 0;text-align:center}
+.bar{position:fixed;left:0;right:0;bottom:0;padding-top:20px;background:linear-gradient(to top,var(--bg) 60%,transparent);padding-bottom:max(12px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+.bar-in{pointer-events:auto}
+#go{position:relative;overflow:hidden;width:100%;min-height:56px;border-radius:16px;background:var(--acc);color:var(--ink);font-size:17px;font-weight:700;box-shadow:0 6px 20px color-mix(in srgb,var(--acc) 35%,transparent)}
+@media(min-width:880px){#go{width:380px}}
+@media(min-width:1112px){.bar-in{padding-inline:16px}}
+#go i{position:absolute;inset:0 auto 0 0;width:calc(var(--p,0) * 1%);background:rgba(0,0,0,.22);transition:width .2s linear}
+#go b{position:relative}
+.foot{color:var(--mute);font-size:12px;text-align:center;margin-top:16px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+<header><h1>신세계 계산기</h1></header>
+<div class="tabbar"><nav class="tabs" id="tabs" data-tab="sim" role="tablist" aria-label="계산 종류"><span class="ind" aria-hidden="true"></span>
+<a href="#sim" id="t-sim" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>종료 시간</a>
+<a href="#gems" id="t-gems" role="tab"><img src="img/gem.webp" alt="" onerror="this.remove()">필요 다이아</a></nav></div>
+<main data-tab="sim">
+<div class="layout">
+<section class="panel cond" aria-label="조건">
+<div class="lbl">테마</div><div class="tiles" id="theme"></div>
+<div class="lbl">난이도</div><div class="seg" id="diff"></div>
+<div class="lbl">황금카드</div><div id="cards"></div>
+<div class="lbl">멤버십</div><div class="chips" id="ms"></div>
+<div class="days" id="pdays" hidden></div>
+<div class="simonly"><div class="lbl">다이아 예산</div><div class="gembox"><span id="gemico"></span><input id="gem" type="number" min="0" step="100" value="0" inputmode="numeric" aria-label="다이아 예산"><div class="chips" id="gchips2"></div></div></div>
+<button class="advbtn" id="advbtn" aria-expanded="false" aria-controls="adv"></button>
+<div class="adv" id="adv" hidden>
+<label for="hrs">접속 시간</label><input id="hrs" type="number" min="0" max="24" step="0.5" value="6" inputmode="decimal">
+<label for="days">회차 일수</label><input id="days" type="number" min="1" max="14" step="1" value="6" inputmode="numeric">
+<div class="chips"><button class="chip" id="ads" aria-pressed="false">광고 포함</button><button class="chip" id="ltd" aria-pressed="true">한정 패키지</button></div>
+<input id="start" type="datetime-local" aria-label="시즌 시작 일시">
+</div>
+</section>
+
+<section class="panel res" aria-live="polite">
+<div id="r-sim"><div class="empty" id="simEmpty">계산 중…</div><div id="simBody" hidden>
+<button class="chip" id="needgems" hidden style="margin-bottom:10px;min-height:36px;font-size:13px">목표 달성에 필요한 다이아 계산 →</button>
+<div class="hero" id="hero"></div>
+<div class="chips" id="schips" style="margin-bottom:12px"></div>
+<div class="wall" id="wall"></div>
+<div class="graph" id="graph"></div>
+<details><summary>랭크별 시간 표</summary>
+<table id="tl"></table>
+<button class="chip" id="recalc" hidden>다시 계산</button>
+</details>
+<details id="gemsDet" hidden><summary>다이아 내역</summary>
+<table id="gems"></table>
+</details></div></div>
+<div id="r-gems"><div class="empty" id="gEmpty">계산하기를 누르세요</div><div id="gBody" hidden>
+<div id="ghero"></div>
+<div class="chips" id="gchips"></div>
+<details id="gdet" hidden><summary>시도 목록</summary><table id="gk"></table><table id="gatt"></table></details></div></div>
+</section>
+</div>
+<p class="foot">게임 내장 시뮬레이터 기반 추정치 · 비공식</p>
+<p class="foot">제작지원: 머그리 감사합니다</p>
+</main>
+<div class="bar"><div class="bar-in"><button id="go"><i></i><b>계산하기</b></button></div></div>
+<script type="module">
+import { loadInputs, loadText, loadSheets, runChunked } from './engine.js';
+import { searchMinGems } from './search.js';
+import { cachedRun } from './cache.js';
+
+const $ = (id) => document.getElementById(id);
+const root = document.documentElement;
+const THEMES = [[90001, '불', 'fire', '#FF6A2B'], [90002, '얼음', 'ice', '#3CC8F0'], [90003, '마법', 'magic', '#A57BFF']];
+const DIFFS = [[0, '보통', 10], [1, '어려움', 15], [2, '극한', 20]];
+const MS = [['ms_ads', '광고'], ['ms_booster', '부스터'], ['ms_mission', '미션'], ['ms_power', '파워'], ['ms_soul', '영혼'], ['ms_science', '과학'], ['ms_quantum', '양자'], ['nw_pass', '패스']];
+const S = { theme: 90001, diff: 0, lv: {}, ms: Object.fromEntries(MS.map(([id]) => [id, true])), pass: 1, pdays: new Set(), opt: false, ads: false, ltd: true };
+let inputs, text = {}, M = {};
+const img = (src, cls = '') => (src ? `<img class="${cls}" src="${src}" alt="" onerror="this.remove()">` : '');
+const nDays = () => Math.min(14, Math.max(1, +$('days').value || 6));
+const curIcon = (id) => {
+  const m = /card_frame_(\d)/.exec(id);
+  if (m) return M.currency?.[['card_frame_normal', 'card_frame_epic', 'card_frame_legendary', 'card_frame_golden'][m[1] - 1]];
+  if (/world_crystal/.test(id)) return M.currency?.world_crystal;
+  if (/time|leap/.test(id)) return M.currency?.time_leap;
+  return M.memberships?.[id] ?? M.currency?.gem;
+};
+
+const won = (n) => Math.round(n).toLocaleString('ko-KR');
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const dur = (h) => { const t = Math.round(h * 60), d = Math.floor(t / 1440), hh = Math.floor((t % 1440) / 60), m = t % 60; return d ? `${d}일 ${hh}시간` : hh ? `${hh}시간${m ? ' ' + m + '분' : ''}` : `${m}분`; };
+const durS = (h) => { const t = Math.round(h * 60), d = Math.floor(t / 1440), hh = Math.floor((t % 1440) / 60); return d ? `${d}일 ${hh}h` : hh ? `${hh}h` : `${t % 60}분`; };
+const fmtDate = (d) => d.toLocaleString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+const tab = () => (location.hash === '#gems' ? 'gems' : 'sim');
+
+// ---------- 입력 ----------
+function renderTheme() {
+  $('theme').innerHTML = THEMES.map(([id, n, k, c]) => `<button class="tile" style="--c:${c}" data-id="${id}" aria-pressed="${id === S.theme}">${M.extra?.['theme_top_' + k] ? `<span class="top" style="background-image:url(${M.extra['theme_top_' + k]})"></span>` : ''}${img(M.themes?.[id])}<span class="nm disp">${n}</span></button>`).join('');
+  root.dataset.nw = THEMES.find((t) => t[0] === S.theme)[2];
+  renderCards();
+}
+function renderDiff() {
+  $('diff').innerHTML = DIFFS.map(([v, n, r]) => `<button data-v="${v}" aria-pressed="${v === S.diff}"><b>${r}</b>${n}</button>`).join('');
+}
+function renderCards() {
+  const th = inputs.themes.find((t) => t.id === S.theme);
+  $('cards').innerHTML = th.goldenCards.map((id) => {
+    const c = inputs.goldenCards.find((x) => x.id === id), l = S.lv[id] ?? 1;
+    return `<div class="cardrow" title="${esc((c.desc || '').replace(/\{0(:[^}]*)?\}/g, c.valuesByLevel[Math.max(l, 1) - 1]))}"><span class="cn">${img(M.cards?.[id])}<span>${esc(c.name)}</span></span>
+<div class="step" data-id="${id}"><button data-d="-1" aria-label="${esc(c.name)} 레벨 감소" ${l <= 0 ? 'disabled' : ''}>−</button><span class="num">${l ? 'Lv ' + l : '없음'}</span><button data-d="1" aria-label="${esc(c.name)} 레벨 증가" ${l >= c.maxLevel ? 'disabled' : ''}>+</button></div></div>`;
+  }).join('');
+}
+function renderMs() {
+  const all = MS.every(([id]) => (id === 'nw_pass' ? S.pass === 1 : S.ms[id]));
+  $('ms').innerHTML = `<button class="chip all" data-id="*" aria-pressed="${all}">전체</button>` + MS.map(([id, n]) => id === 'nw_pass'
+    ? `<button class="chip" data-id="nw_pass" aria-pressed="${S.pass > 0}">${img(M.memberships?.[id])}${n}${S.pass ? `<small>${S.pass === 1 ? '전체' : '1일'}</small>` : ''}</button>`
+    : `<button class="chip" data-id="${id}" aria-pressed="${S.ms[id]}">${img(M.memberships?.[id])}${n}</button>`).join('');
+  renderDays();
+}
+function renderDays() {
+  const g = tab() === 'gems', box = $('pdays');
+  box.hidden = S.pass !== 2;
+  if (S.pass !== 2) return;
+  const opt = g ? `<button class="chip" data-opt="1" aria-pressed="${S.opt}">최적 일수 찾기 (오래 걸림)</button>` : '';
+  box.innerHTML = (g && S.opt ? '' : Array.from({ length: nDays() }, (_, i) => `<button class="chip" data-d="${i}" aria-label="${i + 1}일차" aria-pressed="${S.pdays.has(i)}">D${i + 1}</button>`).join('')) + opt;
+}
+function renderAdv() {
+  $('advbtn').textContent = `접속 ${+$('hrs').value || 0}시간 · ${+$('days').value || 6}일`;
+}
+$('theme').onclick = (e) => { const b = e.target.closest('button'); if (b) { S.theme = +b.dataset.id; renderTheme(); } };
+$('diff').onclick = (e) => { const b = e.target.closest('button'); if (b) { S.diff = +b.dataset.v; renderDiff(); } };
+$('cards').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const id = +b.parentNode.dataset.id, c = inputs.goldenCards.find((x) => x.id === id);
+  S.lv[id] = Math.min(c.maxLevel, Math.max(0, (S.lv[id] ?? 1) + +b.dataset.d)); renderCards();
+};
+$('ms').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.id === '*') { const v = !MS.every(([id]) => (id === 'nw_pass' ? S.pass === 1 : S.ms[id])); for (const [id] of MS) S.ms[id] = v; S.pass = v ? 1 : 0; } else if (b.dataset.id === 'nw_pass') S.pass = (S.pass + 1) % 3; else S.ms[b.dataset.id] = !S.ms[b.dataset.id];
+  renderMs();
+};
+$('advbtn').onclick = () => { const o = $('adv').hidden; $('adv').hidden = !o; $('advbtn').setAttribute('aria-expanded', o); };
+const GEMQ = [[0, '0'], [5000, '5천'], [10000, '1만'], [20000, '2만'], [50000, '5만']];
+function renderGem() {
+  const v = +$('gem').value || 0;
+  $('gchips2').innerHTML = GEMQ.map(([n, l]) => `<button class="chip" data-v="${n}" aria-pressed="${v === n}">${l}</button>`).join('');
+  $('gemico').innerHTML = img(M.currency?.gem);
+}
+$('gchips2').onclick = (e) => { const b = e.target.closest('button'); if (b) { $('gem').value = b.dataset.v; renderGem(); } };
+$('gem').oninput = renderGem;
+for (const id of ['hrs', 'days']) $(id).oninput = () => { renderAdv(); renderDays(); };
+$('pdays').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.opt) S.opt = !S.opt; else { const d = +b.dataset.d; S.pdays.has(d) ? S.pdays.delete(d) : S.pdays.add(d); } renderDays(); };
+for (const id of ['ads', 'ltd']) $(id).onclick = () => { S[id] = !S[id]; $(id).setAttribute('aria-pressed', S[id]); };
+
+function collect() {
+  const rankMax = DIFFS.find((d) => d[0] === S.diff)[2];
+  const th = inputs.themes.find((t) => t.id === S.theme);
+  const goldenCardLevels = Object.fromEntries(th.goldenCards.map((id) => [id, S.lv[id] ?? 1]));
+  const sd = $('start').value;
+  return { themeId: S.theme, difficulty: S.diff, goldenCardLevels, memberships: { ...S.ms, nw_pass: S.pass === 1 }, ...(S.pass === 2 ? { nwPassDays: [...S.pdays].filter((d) => d < nDays()).sort((a, b) => a - b) } : {}), gemBudget: +$('gem').value || 0, onlineHoursPerDay: +$('hrs').value || 0,
+    seasonDays: Math.max(1, +$('days').value || 6), includeAds: S.ads, includeLimitedPackages: S.ltd, rankMax, startDate: sd ? new Date(sd) : null };
+}
+
+// ---------- 실행 바 ----------
+const st = { sim: { run: false, pct: 0, cancel: null }, gems: { run: false, pct: 0, cancel: null } };
+function renderBar() {
+  const t = tab(), s = st[t];
+  $('go').style.setProperty('--p', s.run ? s.pct : 0); $('go').classList.toggle('run', s.run);
+  $('go').querySelector('b').textContent = s.run ? `${t === 'sim' ? '계산' : '탐색'} 중 ${Math.round(s.pct)}% · 취소` : t === 'sim' ? '계산하기' : '필요 다이아 계산';
+}
+$('recalc').onclick = () => startSim(true);
+$('needgems').onclick = () => { location.hash = '#gems'; route(); if (!st.gems.run) startGems(); };
+$('go').onclick = () => { const t = tab(); if (st[t].run) st[t].cancel(); else (t === 'sim' ? startSim : startGems)(); };
+
+// ---------- 워커 풀 ----------
+function makePool(n) {
+  const slots = [], queue = []; let dead = false;
+  const fallback = (j) => runChunked(j.opts, j.onp, () => dead).then(j.res, j.rej);
+  const pump = () => {
+    while (queue.length && !dead) {
+      let s = slots.find((x) => !x.job);
+      if (!s && slots.length < n) { try { s = spawn(); slots.push(s); } catch { fallback(queue.shift()); continue; } }
+      if (!s) return;
+      s.job = queue.shift(); if (s.ready) s.w.postMessage(s.job.opts);
+    }
+  };
+  const spawn = () => {
+    const s = { w: new Worker('worker.js', { type: 'module' }), job: null, ready: false };
+    s.w.onmessage = ({ data }) => {
+      if (data.type === 'ready') { s.ready = true; if (s.job) s.w.postMessage(s.job.opts); return; }
+      if (data.type === 'progress') return s.job?.onp?.(data.f, data.p);
+      const j = s.job; s.job = null;
+      data.type === 'done' ? j.res(data.r) : j.rej(new Error(data.message));
+      pump();
+    };
+    s.w.onerror = (e) => { e.preventDefault?.(); s.w.terminate(); slots.splice(slots.indexOf(s), 1); const j = s.job; s.job = null; if (j) fallback(j); };
+    return s;
+  };
+  return {
+    run: (opts, onp) => new Promise((res, rej) => { queue.push({ opts, onp, res, rej }); pump(); }),
+    terminate() { dead = true; for (const s of slots) { s.w.terminate(); s.job?.rej(new Error('cancelled')); } for (const j of queue) j.rej(new Error('cancelled')); slots.length = queue.length = 0; },
+  };
+}
+const prodName = (id) => inputs.memberships.find((m) => m.id === id)?.name ?? text['name_' + id] ?? text['name_pr_' + id] ??
+  id.replace(/^pr_(nw_)?/, '').split('_').map((w) => ({ card: '카드', frame: '프레임', world: '세계', crystal: '수정', time: '시간', leap: '도약' }[w] ?? w)).join(' ');
+let PR = null;
+const ITEMS = { 132: ['세계 수정', '개', 'world_crystal'], 143: ['시간 도약', '시간', 'time_leap'], 155: ['일반 카드 프레임', '장', 'card_frame_normal'], 156: ['에픽 카드 프레임', '장', 'card_frame_epic'], 157: ['전설 카드 프레임', '장', 'card_frame_legendary'], 158: ['황금 카드 프레임', '장', 'card_frame_golden'] };
+// gemSpentDetail {productId: gems} -> items actually received (Product.Price / Reward.ItemType, FreeAmount); unknown products keep the raw label
+function gemItems(r) {
+  const agg = new Map(), out = [];
+  for (const [id, g] of gemRows(r)) {
+    const p = PR?.prod.get(id), rw = p && PR.rew.get(p.RewardId), it = rw && ITEMS[rw.ItemType];
+    if (!it || !(p.Price > 0) || !(rw.FreeAmount > 0)) { out.push({ icon: curIcon(id), name: prodName(id), qty: '', gems: g }); continue; }
+    const a = agg.get(rw.ItemType) ?? { it, amt: 0, gems: 0 };
+    a.amt += Math.round(g / p.Price) * rw.FreeAmount; a.gems += g; agg.set(rw.ItemType, a);
+  }
+  for (const a of agg.values()) out.push({ icon: M.currency?.[a.it[2]], name: a.it[0], qty: `${won(a.amt)}${a.it[1]}`, gems: a.gems });
+  return out.sort((x, y) => y.gems - x.gems);
+}
+const gemRows = (r) => Object.entries(r.gemSpentDetail || {}).filter(([, g]) => g).sort((a, b) => b[1] - a[1]);
+
+// ---------- 그래프 ----------
+let G = null, gW = 0;
+function renderGraph() {
+  const box = $('graph');
+  if (!G) { box.innerHTML = ''; return; }
+  const W = Math.max(240, box.clientWidth || 340), H = 220, L = 30, R = 12, T = 14, B = 26;
+  const X1 = W - R, Y0 = H - B, hMax = G.days * 24, rm = G.rankMax;
+  const X = (h) => L + (Math.min(h, hMax) / hMax) * (X1 - L), Y = (r) => Y0 - ((r - 1) / (rm - 1)) * (Y0 - T);
+  const pts = [{ rank: 1, hours: 0 }, ...G.tl.filter((p) => p.rank > 1)];
+  G.pts = pts;
+  let d = `M${X(0)} ${Y(1)}`;
+  for (const p of pts.slice(1)) d += ` H${X(p.hours)} V${Y(p.rank)}`;
+  const last = pts[pts.length - 1];
+  const ext = !G.run && !G.reached ? `<path d="M${X(last.hours)} ${Y(last.rank)} H${X1}" fill="none" stroke="var(--mute)" stroke-width="2" stroke-dasharray="4 4"/>` : '';
+  const yt = [...new Set([1, ...Array.from({ length: rm }, (_, i) => i + 1).filter((r) => r % 5 === 0), rm])];
+  const step = Math.ceil(G.days / Math.max(1, Math.floor((X1 - L) / 44)));
+  const xt = []; for (let dd = 0; dd <= G.days; dd += step) xt.push(dd);
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="랭크별 도달 시점 그래프">
+${yt.map((r) => `<line x1="${L}" x2="${X1}" y1="${Y(r)}" y2="${Y(r)}" stroke="var(--line)"/><text x="${L - 6}" y="${Y(r) + 4}" text-anchor="end">${r}</text>`).join('')}
+${xt.map((dd) => `<line x1="${X(dd * 24)}" x2="${X(dd * 24)}" y1="${T}" y2="${Y0}" stroke="var(--line)"/><text x="${X(dd * 24)}" y="${H - 8}" text-anchor="middle">${dd ? dd + '일' : '0'}</text>`).join('')}
+<line x1="${L}" x2="${X1}" y1="${Y(rm)}" y2="${Y(rm)}" stroke="var(--mute)" stroke-dasharray="2 4"/><text x="${X1}" y="${Y(rm) - 5}" text-anchor="end">목표 ${rm}</text>
+${ext}<path d="${d}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>
+${pts.map((p) => `<circle cx="${X(p.hours)}" cy="${Y(p.rank)}" r="3.5" fill="var(--acc)" stroke="var(--card)" stroke-width="1.5"/>`).join('')}
+${pts.map((p, i) => `<circle class="hit" data-i="${i}" cx="${X(p.hours)}" cy="${Y(p.rank)}" r="13" tabindex="0" aria-label="랭크 ${p.rank} ${p.rank === 1 ? '시작' : dur(p.hours)}"/>`).join('')}
+</svg><div class="tip" hidden></div>`;
+  box._xy = (i) => [X(pts[i].hours), Y(pts[i].rank), W];
+}
+function showTip(e) {
+  const h = e.target.closest?.('.hit'), box = $('graph'), t = box.querySelector('.tip');
+  if (!h || !t) return;
+  const i = +h.dataset.i, p = G.pts[i], [x, y, W] = box._xy(i);
+  t.textContent = `랭크 ${p.rank} · ${p.rank === 1 ? '시작' : dur(p.hours)}`;
+  t.style.left = Math.min(W - 50, Math.max(50, x)) + 'px'; t.style.top = y - 10 + 'px'; t.hidden = false;
+}
+const hideTip = () => { const t = $('graph').querySelector('.tip'); if (t) t.hidden = true; };
+{ const gb = $('graph'); gb.addEventListener('pointerover', showTip); gb.addEventListener('click', showTip); gb.addEventListener('focusin', showTip); gb.addEventListener('pointerleave', hideTip); gb.addEventListener('focusout', hideTip);
+  new ResizeObserver(() => { if (gb.clientWidth !== gW) { gW = gb.clientWidth; renderGraph(); } }).observe(gb); }
+
+// ---------- 시뮬레이터 ----------
+const itemChip = (icon, name, qty, gems) => `<span class="chip static">${img(icon)}<span>${esc(name)}${qty ? ` <b class="num">${qty}</b>` : ''} · <span class="num">${won(gems)}</span>다이아</span></span>`;
+const passChip = (n) => itemChip(M.memberships?.nw_pass, '패스 1일권', `${n}일`, n * 900);
+function buildWall(rankMax) {
+  const fr = M.rank_frames?.[THEMES.find((t) => t[0] === S.theme)[2]];
+  const rows = rankMax / 5, ranks = [];
+  for (let row = rows - 1; row >= 0; row--) for (let c = 0; c < 5; c++) ranks.push(row * 5 + c + 1);
+  $('wall').innerHTML = ranks.map((r) => `<div class="brick${r === rankMax ? ' goal' : ''}${fr ? ' hasimg' : ''}" data-r="${r}"><div class="fr">${fr ? `<img src="${fr}" alt="" onerror="this.closest('.brick').classList.remove('hasimg');this.remove()">` : ''}<span class="rk">${r}</span></div><span class="tm"></span></div>`).join('');
+}
+function fillWall(tl) {
+  const at = new Map([[1, 0], ...tl.map((p) => [p.rank, p.hours])]);
+  for (const b of $('wall').children) {
+    const r = +b.dataset.r;
+    if (at.has(r) && !b.classList.contains('on')) { b.classList.add('on'); b.lastChild.textContent = r === 1 ? '시작' : durS(at.get(r)); }
+  }
+}
+async function startSim(fresh = false) {
+  const o = collect(), { rankMax, startDate, ...simOpts } = o, s = st.sim;
+  $('simEmpty').hidden = true; $('simBody').hidden = false; $('needgems').hidden = true; $('tl').innerHTML = $('gems').innerHTML = '';
+  buildWall(rankMax); fillWall([]); $('schips').innerHTML = ''; $('recalc').hidden = true; G = { rankMax, days: o.seasonDays, tl: [], run: true }; renderGraph();
+  $('hero').className = 'hero'; $('hero').innerHTML = '<strong>계산 중</strong><div class="sub"><span class="num">0시간</span></div>';
+  s.run = true; s.pct = 0; renderBar();
+  const p = makePool(1); s.cancel = () => p.terminate();
+  try {
+    const { r, cached } = await cachedRun(simOpts, () => p.run(simOpts, (f, pp) => {
+      s.pct = f * 100; renderBar(); fillWall(pp?.rankTimeline ?? []);
+      G.tl = pp?.rankTimeline ?? []; renderGraph();
+      $('hero').querySelector('.sub').textContent = `${dur(pp?.elapsedHours ?? 0)} 경과 · 랭크 ${pp?.finalRank ?? ''}`;
+    }), fresh);
+    showSim(r, { rankMax, startDate, seasonDays: o.seasonDays }, cached);
+  } catch (e) { $('hero').innerHTML = `<strong>${e.message === 'cancelled' ? '취소됨' : '계산 실패'}</strong><div class="sub">${e.message === 'cancelled' ? '' : esc(e.message)}</div>`; }
+  finally { p.terminate(); s.run = false; renderBar(); }
+}
+function showSim(r, o, cached) {
+  const when = (h) => fmtDate(new Date(o.startDate.getTime() + h * 3600e3));
+  const hero = $('hero'); hero.className = 'hero ' + (r.reached ? 'ok' : 'bad');
+  hero.innerHTML = r.reached
+    ? `<strong>${dur(r.elapsedHours)}</strong><div class="sub"><span class="tag">랭크 ${r.finalRank} 달성</span>${o.startDate ? `<span>${when(r.elapsedHours)}</span>` : ''}${cached ? '<span class="saved">저장된 결과</span>' : ''}</div>`
+    : `<strong>${o.seasonDays}일 내 불가</strong><div class="sub"><span class="tag">최고 랭크 ${r.finalRank}</span>${cached ? '<span class="saved">저장된 결과</span>' : ''}</div>`;
+  $('recalc').hidden = !cached;
+  $('needgems').hidden = r.reached;
+  G = { rankMax: o.rankMax, days: o.seasonDays, tl: r.rankTimeline, run: false, reached: r.reached, finalRank: r.finalRank }; renderGraph();
+  buildWall(o.rankMax); fillWall(r.rankTimeline);
+  const pn = Math.round((r.passGems || 0) / 900);
+  $('schips').innerHTML = pn ? passChip(pn) : '';
+  $('tl').innerHTML = '<tr><th>랭크</th><th>도달</th><th>시간</th></tr>' + r.rankTimeline.map((p) => `<tr><td>${p.rank}</td><td>${o.startDate ? when(p.hours) : dur(p.hours)}</td><td>${p.hours.toFixed(1)}h</td></tr>`).join('');
+  const g = gemItems(r), pg = r.passGems || 0;
+  $('gemsDet').hidden = !(g.length || pg);
+  $('gems').innerHTML = g.length || pg ? '<tr><th>다이아 사용</th><th></th></tr>' + g.map((x) => `<tr><td>${esc(x.name)}${x.qty ? ' ' + x.qty : ''}</td><td>${won(x.gems)}</td></tr>`).join('') + (pg ? `<tr><td>패스 1일권 ${pg / 900}일</td><td>${won(pg)}</td></tr>` : '') + `<tr><td><b>합계</b></td><td><b>${won(r.gemsSpent + pg)}</b></td></tr>` : '';
+}
+
+// ---------- 필요 다이아 ----------
+const POOL_N = Math.min(4, Math.max(1, (navigator.hardwareConcurrency || 2) - 1));
+const gcard = (cls, main, line, icon = true) => `<div class="gcard ${cls}">${icon ? img(M.currency?.gem, 'gico') : ''}<div class="gtxt"><div class="gnumrow">${main}</div><div class="gline">${line}</div></div></div>`;
+const gnum = (t, c = '') => `<span class="gnum ${c}">${t}</span>`, gunit = (t) => `<span class="gunit">${t}</span>`;
+async function startGems() {
+  const o = collect(), { rankMax, startDate, gemBudget, ...base } = o, s = st.gems;
+  const opt = S.pass === 2 && S.opt, ks = opt ? Array.from({ length: o.seasonDays + 1 }, (_, i) => i) : [null];
+  $('gEmpty').hidden = true; $('gBody').hidden = false; $('gdet').hidden = true; $('gchips').innerHTML = '';
+  s.run = true; s.pct = 0; renderBar();
+  const p = makePool(POOL_N); s.cancel = () => p.terminate();
+  const estTotal = 1 + 7 + 2 * POOL_N, active = new Map(); let done = 0, ki = 0, cur = [];
+  const paint = (k) => {
+    let hi = Infinity, lo = 0;
+    for (const a of cur) if (a.r.reached && a.budget < hi) hi = a.budget;
+    for (const a of cur) if (!a.r.reached && a.budget < hi && a.budget > lo) lo = a.budget;
+    const main = hi < Infinity ? gunit('약') + gnum(`${won(lo)} ~ ${won(hi)}`, 'rng') + gunit('다이아') : lo > 0 ? gunit('약') + gnum(`${won(lo)} 이상`, 'rng') + gunit('다이아') : gnum('탐색 중…', 't');
+    $('ghero').innerHTML = gcard('', main, `탐색 중 · 완료 ${done}회${opt ? ` · 1일권 ${k}일` : ''}`);
+  };
+  paint(ks[0]);
+  const upd = () => { const inner = Math.min(0.97, (done + [...active.values()].reduce((a, b) => a + b, 0)) / estTotal); s.pct = Math.min(97, ((ki + inner) / ks.length) * 100); renderBar(); };
+  const evalFor = (extra) => (b) => { const id = Symbol(), opts = { ...base, ...extra, gemBudget: b }; active.set(id, 0); return cachedRun(opts, () => p.run(opts, (f) => { active.set(id, f); upd(); })).then((x) => x.r).finally(() => active.delete(id)); };
+  const total = (res) => (res.status === 'unreachable' ? Infinity : res.best.r.gemsSpent + (res.best.r.passGems || 0));
+  const meta = { rankMax, startDate, seasonDays: o.seasonDays };
+  try {
+    const rows = [];
+    for (const k of ks) {
+      done = 0; cur = [];
+      const res = await searchMinGems(evalFor(k == null ? {} : { nwPassDays: Array.from({ length: k }, (_, i) => i) }), { N: POOL_N, onAttempt: (a) => { done++; cur.push(a); paint(k); upd(); } });
+      rows.push({ k, res }); ki++;
+      if (res.status === 'free') break;
+    }
+    const best = rows.reduce((a, b) => (total(b.res) < total(a.res) ? b : a));
+    showGems(best.res, meta, opt ? { k: best.k, rows, total } : null);
+  } catch (e) {
+    if (e.message !== 'cancelled') { $('gdet').hidden = true; $('gchips').innerHTML = ''; $('ghero').innerHTML = gcard('bad', gnum('계산 실패', 't'), esc(e.message), false); }
+    else { $('gBody').hidden = true; $('gEmpty').textContent = '취소됨'; $('gEmpty').hidden = false; }
+  }
+  finally { p.terminate(); s.run = false; renderBar(); }
+}
+function showGems(res, o, optInfo) {
+  $('gBody').hidden = false; $('gdet').hidden = false;
+  const h = $('ghero'), att = [...res.attempts].sort((a, b) => a.budget - b.budget);
+  $('gk').innerHTML = optInfo ? '<tr><th>1일권</th><th>총 다이아</th><th>시간</th></tr>' + optInfo.rows.map(({ k, res: rr }) => { const t = optInfo.total(rr); return `<tr><td>${k}일${k === optInfo.k ? ' ★' : ''}</td><td>${t === Infinity ? '불가' : won(t)}</td><td>${t === Infinity ? '' : dur(rr.best.r.elapsedHours)}</td></tr>`; }).join('') : '';
+  $('gatt').innerHTML = '<tr><th>예산</th><th>결과</th><th>시간 · 랭크</th></tr>' + att.map(({ budget, r }) =>
+    `<tr><td>${won(budget)}</td><td class="${r.reached ? 'ok' : 'bad'}">${r.reached ? '달성' : '미달'}</td><td>${r.reached ? dur(r.elapsedHours) + ' · ' : ''}${r.finalRank}</td></tr>`).join('');
+  $('gchips').innerHTML = '';
+  if (res.status === 'unreachable') {
+    h.innerHTML = gcard('bad', gnum(`${res.cap >= 10000 ? res.cap / 10000 + '만' : won(res.cap)} 다이아로도 불가`, 't'), `${o.seasonDays}일 내 랭크 ${o.rankMax} 불가 · 최고 랭크 ${res.maxRank}`); return;
+  }
+  const { budget, r } = res.best, pg = r.passGems || 0, tot = r.gemsSpent + pg;
+  const end = o.startDate ? ` <small>(${fmtDate(new Date(o.startDate.getTime() + r.elapsedHours * 3600e3))})</small>` : '';
+  const line = `이 조건이면 <b>${dur(r.elapsedHours)}</b>에 랭크 ${o.rankMax} 달성${end}${res.status === 'free' ? '' : ` <small>· 예산 ${won(budget)}</small>`}`;
+  h.innerHTML = gcard('', tot ? gnum(won(tot)) + gunit('다이아') : gnum('다이아 필요 없음', 't'), line);
+  $('gchips').innerHTML = (pg ? passChip(pg / 900) : '') + gemItems(r).map((x) => itemChip(x.icon, x.name, x.qty, x.gems)).join('');
+}
+
+// ---------- 시작 ----------
+function route() {
+  const t = tab(); document.querySelector('main').dataset.tab = t;
+  for (const k of ['sim', 'gems']) { $('t-' + k).setAttribute('aria-selected', k === t); $('t-' + k).tabIndex = k === t ? 0 : -1; }
+  $('tabs').dataset.tab = t;
+  renderAdv(); renderBar(); renderDays();
+}
+addEventListener('hashchange', route);
+$('tabs').addEventListener('keydown', (e) => { if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; const t = tab() === 'sim' ? 'gems' : 'sim'; location.hash = '#' + t; $('t-' + t).focus(); e.preventDefault(); });
+inputs = await loadInputs(); text = await loadText();
+try { const sh = await loadSheets(); PR = { prod: new Map(sh.Product.map((p) => [p.ProductId, p])), rew: new Map(sh.Reward.map((x) => [x.RewardId, x])) }; } catch { PR = null; }
+try { M = await (await fetch('img/manifest.json')).json(); } catch { M = {}; }
+renderTheme(); renderDiff(); renderMs(); renderGem(); route();
+if (tab() === 'sim') startSim();
+</script>
+
+</body></html>

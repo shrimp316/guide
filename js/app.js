@@ -17,6 +17,7 @@ const SEARCH_ITEMS = [
   { name:'제련 계산기', desc:'재화별 제련 비용 계산', type:'계산기', page:'calc-forge' },
   { name:'신수 계산기', desc:'신수 각성 및 폭주 비용 계산', type:'계산기', page:'calc-beast-cal' },
   { name:'차원탐사 기댓값', desc:'차원탐사 기댓값 계산', type:'계산기', page:'calc-dimension-ev' },
+  { name:'신세계 계산기', desc:'신세계 종료시간 및 필요 다이아 계산', type:'계산기', page:'calc-new-world' },
   { name:'진리의 길', desc:'진리 최적 경로 찾기', type:'도구', page:'tool-path' },
   { name:'진리의 나무', desc:'세팅 프리셋 및 누적 효과', type:'도구', page:'tool-tree' },
   { name:'건의게시판', desc:'기능 건의 및 공략 요청', type:'커뮤니티', page:'board-suggest' },
@@ -27,6 +28,7 @@ const IFRAME_PAGES = {
   'calc-forge': { src:'calc/forge.html', title:'제련 계산기' },
   'calc-beast-cal': { src:'calc/beast-cal/beast-cal.html', title:'신수 계산기' },
   'calc-dimension-ev': { src:'calc/dimension-ev.html', title:'차원탐사 기댓값' },
+  'calc-new-world': { src:'calc/new-world/index.html', title:'신세계 계산기' },
   'tool-path': { src:'tool/path.html', title:'진리의 길' },
   'tool-tree': { src:'tool/tree/tree.html', title:'진리의 나무' },
 };
